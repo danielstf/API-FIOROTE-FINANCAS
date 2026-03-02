@@ -1,0 +1,32 @@
+{
+  "name": "api-fiorote-financas",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielstf/API-FIOROTE-FINANCAS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/danielstf/API-FIOROTE-FINANCAS/issues"
+  },
+  "homepage": "https://github.com/danielstf/API-FIOROTE-FINANCAS#readme",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "fastify": "^5.7.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
