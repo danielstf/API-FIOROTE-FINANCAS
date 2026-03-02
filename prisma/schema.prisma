@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id       String   @id @default(uuid())
+  nome     String
+  email    String   @unique
+  senha    String
+  criadoEm DateTime @default(now())
+
+  receitas Receita[]
+  despesas Despesa[]
+
+  categorias Categoria[]
+}
+
+model Receita {
+  id        String   @id @default(uuid())
+  descricao String
+  valor     Decimal  @db.Decimal(10, 2)
+  data      DateTime
+  criadoEm  DateTime @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  categoriaId String?
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+}
+
+model Despesa {
+  id             String    @id @default(uuid())
+  descricao      String
+  valor          Decimal   @db.Decimal(10, 2)
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  paga           Boolean   @default(false)
+  criadoEm       DateTime  @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  categoriaId String?
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+}
+
+model Categoria {
+  id       String        @id @default(uuid())
+  nome     String
+  tipo     TipoCategoria
+  criadoEm DateTime      @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  receitas Receita[]
+  despesas Despesa[]
+}
+
+enum TipoCategoria {
+  RECEITA
+  DESPESA
+}
