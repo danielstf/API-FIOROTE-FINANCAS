@@ -13,6 +13,14 @@ model Usuario {
   senha    String
   criadoEm DateTime @default(now())
 
+  plano          Plano   @default(FREE) // Novo campo para plano
+  exibirAnuncios Boolean @default(true) // Se usuário Free exibe anúncios
+
+  role Role @default(USER)
+
+  resetToken    String?
+  resetTokenExp DateTime?
+
   receitas Receita[]
   despesas Despesa[]
 
@@ -65,4 +73,14 @@ model Categoria {
 enum TipoCategoria {
   RECEITA
   DESPESA
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Plano {
+  FREE
+  PREMIUM
 }
