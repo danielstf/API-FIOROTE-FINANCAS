@@ -26,4 +26,21 @@ export class UsuarioRepository implements UsuarioRepositoryInterface {
     });
     return usuario;
   }
+
+  // Busca um usuario pelo token de redefinicao de senha
+  async findByResetToken(resetToken: string): Promise<Usuario | null> {
+    const usuario = await prisma.usuario.findFirst({
+      where: { resetToken },
+    });
+    return usuario;
+  }
+
+  // Atualiza dados de um usuario
+  async update(id: string, data: Prisma.UsuarioUpdateInput): Promise<Usuario> {
+    const usuario = await prisma.usuario.update({
+      where: { id },
+      data,
+    });
+    return usuario;
+  }
 }

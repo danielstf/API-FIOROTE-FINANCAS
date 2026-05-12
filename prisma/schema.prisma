@@ -25,6 +25,22 @@ model Usuario {
   despesas Despesa[]
 
   categorias Categoria[]
+
+  pagamentosPremium PagamentoPremium[]
+}
+
+model PagamentoPremium {
+  id                         String          @id @default(uuid())
+  usuarioId                  String
+  usuario                    Usuario         @relation(fields: [usuarioId], references: [id])
+  mercadoPagoPreferenceId    String?         @unique
+  mercadoPagoPaymentId       String?         @unique
+  externalReference          String          @unique
+  status                     PagamentoStatus @default(PENDING)
+  valor                      Decimal         @db.Decimal(10, 2)
+  checkoutUrl                String?
+  criadoEm                   DateTime        @default(now())
+  atualizadoEm               DateTime        @updatedAt
 }
 
 model Receita {
@@ -83,4 +99,12 @@ enum Role {
 enum Plano {
   FREE
   PREMIUM
+}
+
+enum PagamentoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
 }

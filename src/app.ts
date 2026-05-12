@@ -3,6 +3,7 @@ import { fastify } from "fastify";
 import { env } from "./env";
 import fastifyCors from "@fastify/cors";
 import { usuariosRoutes } from "./controllers/usuarios/routes";
+import { pagamentosRoutes } from "./controllers/pagamentos/routes";
 
 export const app = fastify();
 
@@ -20,3 +21,4 @@ app.register(fastifyJwt, {
 });
 
 app.register(usuariosRoutes);
+app.register(pagamentosRoutes);
