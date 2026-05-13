@@ -154,4 +154,17 @@ export class DespesaRepository implements DespesaRepositoryInterface {
       where: { id: despesaId },
     });
   }
+
+  // Exclui todas as parcelas de um mesmo parcelamento do usuario.
+  async deleteByParcelamento(
+    parcelamentoId: string,
+    usuarioId: string,
+  ): Promise<void> {
+    await prisma.despesa.deleteMany({
+      where: {
+        parcelamentoId,
+        usuarioId,
+      },
+    });
+  }
 }

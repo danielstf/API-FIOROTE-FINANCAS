@@ -59,4 +59,7 @@ export interface DespesaRepositoryInterface {
 
   // Exclui uma despesa apos validacao do use case.
   delete(despesaId: string): Promise<void>;
+
+  // Exclui todas as despesas do mesmo parcelamento pertencentes ao usuario.
+  deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void>;
 }

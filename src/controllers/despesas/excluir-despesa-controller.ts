@@ -7,11 +7,19 @@ const excluirDespesaParamsSchema = z.object({
   despesaId: z.string().uuid("Id da despesa invalido"),
 });
 
+const excluirDespesaQuerySchema = z.object({
+  excluirParcelas: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
+});
+
 export async function excluirDespesaController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
   const { despesaId } = excluirDespesaParamsSchema.parse(request.params);
+  const { excluirParcelas } = excluirDespesaQuerySchema.parse(request.query);
 
   try {
     const excluirDespesa = makeExcluirDespesaFactory();
@@ -19,6 +27,7 @@ export async function excluirDespesaController(
     await excluirDespesa.execute({
       usuarioId: request.user.sub,
       despesaId,
+      excluirParcelas,
     });
 
     return reply.status(204).send();
