@@ -1,6 +1,6 @@
-import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
 import { Usuario } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
 
 interface CreateUsuarioUseCaseRequest {
   email: string;
@@ -23,7 +23,7 @@ export class CreateUsuarioUseCase {
     const findUsuario = await this.usuarioRepository.findByEmail(email);
 
     if (findUsuario) {
-      throw new Error("Usuário já existe com esse email");
+      throw new Error("Usuario ja existe com esse email");
     }
 
     const hashedSenha = await hash(senha, 10);

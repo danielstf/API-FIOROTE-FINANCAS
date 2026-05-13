@@ -31,6 +31,7 @@ export async function loginUsuarioController(
         email: usuario.email,
         role: usuario.role,
         plano: usuario.plano,
+        premiumExpiraEm: usuario.premiumExpiraEm,
       },
     });
   } catch (error) {

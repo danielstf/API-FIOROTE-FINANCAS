@@ -13,6 +13,7 @@ const envSchema = z.object({
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),
   PREMIUM_PRICE: z.coerce.number().positive().default(19.9),
+  GOOGLE_CLIENT_ID: z.string().optional().default(""),
 });
 
 const _env = envSchema.safeParse(process.env);

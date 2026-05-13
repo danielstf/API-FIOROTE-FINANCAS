@@ -27,6 +27,14 @@ export class UsuarioRepository implements UsuarioRepositoryInterface {
     return usuario;
   }
 
+  // Busca um usuario pelo identificador unico retornado pelo Google
+  async findByGoogleId(googleId: string): Promise<Usuario | null> {
+    const usuario = await prisma.usuario.findFirst({
+      where: { googleId },
+    });
+    return usuario;
+  }
+
   // Busca um usuario pelo token de redefinicao de senha
   async findByResetToken(resetToken: string): Promise<Usuario | null> {
     const usuario = await prisma.usuario.findFirst({

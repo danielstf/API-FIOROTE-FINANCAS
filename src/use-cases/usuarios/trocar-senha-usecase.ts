@@ -27,7 +27,9 @@ export class TrocarSenhaUseCase {
       throw new CurrentPasswordInvalidError();
     }
 
-    const senhaAtualCorreta = await compare(senhaAtual, usuario.senha);
+    const senhaAtualCorreta = usuario.senha
+      ? await compare(senhaAtual, usuario.senha)
+      : false;
 
     if (!senhaAtualCorreta) {
       throw new CurrentPasswordInvalidError();

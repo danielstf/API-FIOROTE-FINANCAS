@@ -7,6 +7,9 @@ export interface UsuarioRepositoryInterface {
   //Buscar um usuario no banco de dados com base no e-mail.
   findByEmail(email: string): Promise<Usuario | null>;
 
+  //Buscar um usuario pelo id do Google.
+  findByGoogleId(googleId: string): Promise<Usuario | null>;
+
   //Buscar um usuario pelo id (geralmente UUID).
   findById(id: string): Promise<Usuario | null>;
 

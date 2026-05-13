@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../../lib/prisma";
 import { mercadoPagoPreference } from "../../lib/mercadopago";
+import {
+  atualizarPremiumExpirado,
+  usuarioTemPremiumAtivo,
+} from "./premium-validade";
 
 interface CriarCheckoutPremiumUseCaseRequest {
   usuarioId: string;
@@ -12,6 +16,12 @@ interface CriarCheckoutPremiumUseCaseRequest {
 export class UsuarioNaoEncontradoError extends Error {
   constructor() {
     super("Usuario nao encontrado");
+  }
+}
+
+export class UsuarioJaPremiumError extends Error {
+  constructor() {
+    super("Usuario ja possui plano Premium");
   }
 }
 
@@ -30,6 +40,13 @@ export class CriarCheckoutPremiumUseCase {
       throw new UsuarioNaoEncontradoError();
     }
 
+    // Atualiza o status antes de decidir se pode criar uma nova cobranca.
+    const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+
+    if (usuarioTemPremiumAtivo(usuarioAtualizado)) {
+      throw new UsuarioJaPremiumError();
+    }
+
     const pagamento = await prisma.pagamentoPremium.create({
       data: {
         usuarioId,
@@ -42,15 +59,10 @@ export class CriarCheckoutPremiumUseCase {
       body: {
         external_reference: pagamento.externalReference,
         notification_url: `${appUrl}/webhooks/mercado-pago`,
-        auto_return: "approved",
         back_urls: {
           success: `${frontendUrl}/premium/sucesso`,
           pending: `${frontendUrl}/premium/pendente`,
           failure: `${frontendUrl}/premium/falha`,
-        },
-        payer: {
-          email: usuario.email,
-          name: usuario.nome,
         },
         items: [
           {

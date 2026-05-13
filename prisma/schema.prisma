@@ -10,10 +10,12 @@ model Usuario {
   id       String   @id @default(uuid())
   nome     String
   email    String   @unique
-  senha    String
+  senha    String?
+  googleId String?  @unique
   criadoEm DateTime @default(now())
 
   plano          Plano   @default(FREE) // Novo campo para plano
+  premiumExpiraEm DateTime? // Data em que o plano premium deixa de valer
   exibirAnuncios Boolean @default(true) // Se usuário Free exibe anúncios
 
   role Role @default(USER)
@@ -27,6 +29,7 @@ model Usuario {
   categorias Categoria[]
 
   pagamentosPremium PagamentoPremium[]
+  cartoesCredito CartaoCredito[]
 }
 
 model PagamentoPremium {
@@ -48,6 +51,10 @@ model Receita {
   descricao String
   valor     Decimal  @db.Decimal(10, 2)
   data      DateTime
+  fixa      Boolean  @default(false)
+  numeroParcelas Int?
+  parcelaAtual   Int?
+  parcelamentoId String?
   criadoEm  DateTime @default(now())
 
   usuarioId String
@@ -61,9 +68,18 @@ model Despesa {
   id             String    @id @default(uuid())
   descricao      String
   valor          Decimal   @db.Decimal(10, 2)
-  dataVencimento DateTime
+  categoriaNome  String?
+  formaPagamento FormaPagamentoDespesa @default(DINHEIRO)
+  cartaoCreditoId String?
+  cartaoCredito   CartaoCredito? @relation(fields: [cartaoCreditoId], references: [id], onDelete: SetNull)
+  mesReferencia  DateTime  @default(now())
+  dataVencimento DateTime?
   dataPagamento  DateTime?
   paga           Boolean   @default(false)
+  fixa           Boolean   @default(false)
+  numeroParcelas Int?
+  parcelaAtual   Int?
+  parcelamentoId String?
   criadoEm       DateTime  @default(now())
 
   usuarioId String
@@ -71,6 +87,19 @@ model Despesa {
 
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+}
+
+model CartaoCredito {
+  id       String   @id @default(uuid())
+  nome     String
+  criadoEm DateTime @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  despesas Despesa[]
+
+  @@unique([usuarioId, nome])
 }
 
 model Categoria {
@@ -107,4 +136,10 @@ enum PagamentoStatus {
   REJECTED
   CANCELLED
   REFUNDED
+}
+
+enum FormaPagamentoDespesa {
+  DINHEIRO
+  CARTAO_CREDITO
+  DIVIDA
 }
