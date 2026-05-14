@@ -38,7 +38,7 @@ app.register(fastifyCors, {
       return;
     }
 
-    callback(new Error("Origin not allowed by CORS"), false);
+    callback(null, false);
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
@@ -52,7 +52,12 @@ app.setErrorHandler((error, _request, reply) => {
     });
   }
 
-  if (error.statusCode === 429) {
+  const statusCode =
+    typeof error === "object" && error !== null && "statusCode" in error
+      ? Number(error.statusCode)
+      : undefined;
+
+  if (statusCode === 429) {
     return reply.status(429).send({
       message: "Muitas requisicoes. Tente novamente em instantes.",
     });
