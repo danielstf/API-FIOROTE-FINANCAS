@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const urlWithoutTrailingSlash = z
+  .string()
+  .url()
+  .transform((url) => url.replace(/\/$/, ""));
+
 const envSchema = z.object({
   PORT: z.coerce.number().default(3333),
   DATABASE_URL: z.string(),
@@ -8,8 +13,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   RESEND_API_KEY: z.string(),
   RESEND_FROM_EMAIL: z.string().email(),
-  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
-  APP_URL: z.string().url().default("http://localhost:3333"),
+  FRONTEND_URL: urlWithoutTrailingSlash.default("http://localhost:5173"),
+  APP_URL: urlWithoutTrailingSlash.default("http://localhost:3333"),
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),
   PREMIUM_PRICE: z.coerce.number().positive().default(19.9),
@@ -19,8 +24,7 @@ const envSchema = z.object({
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  console.error("❌ Invalid environment variables");
-
+  console.error("Invalid environment variables:", _env.error.flatten().fieldErrors);
   throw new Error("Invalid environment variables.");
 }
 

@@ -11,11 +11,10 @@ import { dashboardRoutes } from "./controllers/dashboard/routes";
 
 export const app = fastify();
 
-const frontendOrigin = env.FRONTEND_URL.replace(/\/$/, "");
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "localhost:5173",
-  frontendOrigin,
+  "https://front-fiorote-financas-production.up.railway.app",
 ]);
 
 app.register(fastifyCors, {
@@ -31,6 +30,14 @@ app.register(fastifyCors, {
   credentials: true,
 });
 
+app.get("/", async () => {
+  return { status: "ok", service: "api-fiorote-financas" };
+});
+
+app.get("/health", async () => {
+  return { status: "ok" };
+});
+
 app.register(fastifyJwt, {
   secret: env.JWT_SECRET,
   sign: {
@@ -44,10 +51,3 @@ app.register(receitasRoutes);
 app.register(despesasRoutes);
 app.register(cartoesRoutes);
 app.register(dashboardRoutes);
-
-app.register(usuariosRoutes, { prefix: "/api" });
-app.register(pagamentosRoutes, { prefix: "/api" });
-app.register(receitasRoutes, { prefix: "/api" });
-app.register(despesasRoutes, { prefix: "/api" });
-app.register(cartoesRoutes, { prefix: "/api" });
-app.register(dashboardRoutes, { prefix: "/api" });
