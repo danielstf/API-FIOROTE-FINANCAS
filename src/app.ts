@@ -14,6 +14,7 @@ export const app = fastify();
 const allowedOrigins = new Set([
   "http://localhost:5176",
   "localhost:5176",
+  env.FRONTEND_URL,
   "https://front-fiorote-financas-production.up.railway.app",
 ]);
 
@@ -26,7 +27,8 @@ app.register(fastifyCors, {
 
     callback(new Error("Origin not allowed by CORS"), false);
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 });
 
