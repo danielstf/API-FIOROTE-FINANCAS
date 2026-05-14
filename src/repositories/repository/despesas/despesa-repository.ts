@@ -111,6 +111,27 @@ export class DespesaRepository implements DespesaRepositoryInterface {
                 },
               ]
             : undefined,
+        AND:
+          dataInicio && dataFim
+            ? [
+                {
+                  OR: [
+                    { fixa: false },
+                    {
+                      excecoesRecorrencia: {
+                        none: {
+                          usuarioId,
+                          mesReferencia: {
+                            gte: dataInicio,
+                            lt: dataFim,
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              ]
+            : undefined,
         dataVencimento: somenteVencidas
           ? {
               lt: hoje,
