@@ -32,6 +32,7 @@ export async function loginUsuarioController(
         role: usuario.role,
         plano: usuario.plano,
         premiumExpiraEm: usuario.premiumExpiraEm,
+        temSenha: Boolean(usuario.senha),
       },
     });
   } catch (error) {

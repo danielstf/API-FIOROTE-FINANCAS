@@ -18,13 +18,24 @@ export async function trocarSenhaController(
 
   try {
     const trocarSenha = makeTrocarSenhaFactory();
-    await trocarSenha.execute({
+    const { usuario } = await trocarSenha.execute({
       usuarioId: request.user.sub,
       senhaAtual,
       novaSenha,
     });
 
-    return reply.status(200).send({ message: "Senha alterada com sucesso" });
+    return reply.status(200).send({
+      message: "Senha alterada com sucesso",
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        role: usuario.role,
+        plano: usuario.plano,
+        premiumExpiraEm: usuario.premiumExpiraEm,
+        temSenha: Boolean(usuario.senha),
+      },
+    });
   } catch (error) {
     if (error instanceof CurrentPasswordInvalidError) {
       return reply.status(400).send({ message: error.message });

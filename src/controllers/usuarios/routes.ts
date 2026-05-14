@@ -7,6 +7,7 @@ import { loginGoogleController } from "./login-google-controller";
 import { redefinirSenhaController } from "./redefinir-senha-controller";
 import { solicitarRedefinicaoSenhaController } from "./solicitar-redefinicao-senha-controller";
 import { trocarSenhaController } from "./trocar-senha-controller";
+import { buscarPerfilController } from "./buscar-perfil-controller";
 
 export function usuariosRoutes(app: FastifyInstance) {
   app.post("/usuarios", createUsuarioController);
@@ -14,6 +15,13 @@ export function usuariosRoutes(app: FastifyInstance) {
   app.post("/login/google", loginGoogleController);
   app.post("/esqueci-senha", solicitarRedefinicaoSenhaController);
   app.post("/redefinir-senha", redefinirSenhaController);
+  app.get(
+    "/usuarios/perfil",
+    {
+      preHandler: [JWTVerify],
+    },
+    buscarPerfilController,
+  );
   app.patch(
     "/usuarios/perfil",
     {

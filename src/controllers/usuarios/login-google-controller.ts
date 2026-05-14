@@ -35,6 +35,7 @@ export async function loginGoogleController(
         role: usuario.role,
         plano: usuario.plano,
         premiumExpiraEm: usuario.premiumExpiraEm,
+        temSenha: Boolean(usuario.senha),
       },
     });
   } catch (error) {

@@ -1,3 +1,4 @@
+import { Usuario } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
 
@@ -5,6 +6,10 @@ interface TrocarSenhaUseCaseRequest {
   usuarioId: string;
   senhaAtual?: string;
   novaSenha: string;
+}
+
+interface TrocarSenhaUseCaseResponse {
+  usuario: Usuario;
 }
 
 export class CurrentPasswordInvalidError extends Error {
@@ -20,7 +25,7 @@ export class TrocarSenhaUseCase {
     usuarioId,
     senhaAtual,
     novaSenha,
-  }: TrocarSenhaUseCaseRequest): Promise<void> {
+  }: TrocarSenhaUseCaseRequest): Promise<TrocarSenhaUseCaseResponse> {
     const usuario = await this.usuarioRepository.findById(usuarioId);
 
     if (!usuario) {
@@ -39,10 +44,12 @@ export class TrocarSenhaUseCase {
 
     const hashedSenha = await hash(novaSenha, 10);
 
-    await this.usuarioRepository.update(usuario.id, {
+    const usuarioAtualizado = await this.usuarioRepository.update(usuario.id, {
       senha: hashedSenha,
       resetToken: null,
       resetTokenExp: null,
     });
+
+    return { usuario: usuarioAtualizado };
   }
 }

@@ -29,6 +29,7 @@ export async function atualizarPerfilController(
         role: usuario.role,
         plano: usuario.plano,
         premiumExpiraEm: usuario.premiumExpiraEm,
+        temSenha: Boolean(usuario.senha),
       },
     });
   } catch (error) {
