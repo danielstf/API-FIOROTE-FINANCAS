@@ -11,8 +11,22 @@ import { dashboardRoutes } from "./controllers/dashboard/routes";
 
 export const app = fastify();
 
+const frontendOrigin = env.FRONTEND_URL.replace(/\/$/, "");
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "localhost:5173",
+  frontendOrigin,
+]);
+
 app.register(fastifyCors, {
-  origin: ["localhost:5173", "http://localhost:5173", env.FRONTEND_URL],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin.replace(/\/$/, ""))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Origin not allowed by CORS"), false);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
 });
@@ -30,3 +44,10 @@ app.register(receitasRoutes);
 app.register(despesasRoutes);
 app.register(cartoesRoutes);
 app.register(dashboardRoutes);
+
+app.register(usuariosRoutes, { prefix: "/api" });
+app.register(pagamentosRoutes, { prefix: "/api" });
+app.register(receitasRoutes, { prefix: "/api" });
+app.register(despesasRoutes, { prefix: "/api" });
+app.register(cartoesRoutes, { prefix: "/api" });
+app.register(dashboardRoutes, { prefix: "/api" });
