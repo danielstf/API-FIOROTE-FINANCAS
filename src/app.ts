@@ -1,6 +1,9 @@
 import fastifyJwt from "@fastify/jwt";
+import fastifyHelmet from "@fastify/helmet";
 import fastifyCors from "@fastify/cors";
+import fastifyRateLimit from "@fastify/rate-limit";
 import { fastify } from "fastify";
+import { ZodError } from "zod";
 import { env } from "./env";
 import { usuariosRoutes } from "./controllers/usuarios/routes";
 import { pagamentosRoutes } from "./controllers/pagamentos/routes";
@@ -14,8 +17,19 @@ export const app = fastify();
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "localhost:5173",
-  "https://front-fiorote-financas-production.up.railway.app",
+  env.FRONTEND_URL,
 ]);
+
+app.register(fastifyHelmet);
+
+app.register(fastifyRateLimit, {
+  global: true,
+  max: 300,
+  timeWindow: "1 minute",
+  errorResponseBuilder() {
+    return { message: "Muitas requisicoes. Tente novamente em instantes." };
+  },
+});
 
 app.register(fastifyCors, {
   origin(origin, callback) {
@@ -28,6 +42,24 @@ app.register(fastifyCors, {
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
+});
+
+app.setErrorHandler((error, _request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      message: "Dados invalidos",
+      errors: error.flatten().fieldErrors,
+    });
+  }
+
+  if (error.statusCode === 429) {
+    return reply.status(429).send({
+      message: "Muitas requisicoes. Tente novamente em instantes.",
+    });
+  }
+
+  console.error(error);
+  return reply.status(500).send({ message: "Erro interno do servidor" });
 });
 
 app.get("/", async () => {
