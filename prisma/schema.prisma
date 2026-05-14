@@ -30,6 +30,7 @@ model Usuario {
 
   pagamentosPremium PagamentoPremium[]
   cartoesCredito CartaoCredito[]
+  despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
 }
 
 model PagamentoPremium {
@@ -87,6 +88,21 @@ model Despesa {
 
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+
+  excecoesRecorrencia DespesaExcecaoRecorrencia[]
+}
+
+model DespesaExcecaoRecorrencia {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  despesaId     String
+  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  mesReferencia DateTime
+  criadoEm      DateTime @default(now())
+
+  @@unique([despesaId, usuarioId, mesReferencia])
+  @@index([usuarioId, mesReferencia])
 }
 
 model CartaoCredito {
@@ -141,5 +157,8 @@ enum PagamentoStatus {
 enum FormaPagamentoDespesa {
   DINHEIRO
   CARTAO_CREDITO
-  DIVIDA
+  CARTAO_DEBITO
+  VALE_ALIMENTACAO
+  VALE_REFEICAO
+  BOLETO
 }

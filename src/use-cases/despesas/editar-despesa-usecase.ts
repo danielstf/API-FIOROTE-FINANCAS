@@ -75,7 +75,7 @@ export class EditarDespesaUseCase {
       cartaoId = cartao.id;
     }
 
-    if (formaFinal === FormaPagamentoDespesa.DINHEIRO) {
+    if (formaFinal !== FormaPagamentoDespesa.CARTAO_CREDITO) {
       cartaoId = null;
     }
 

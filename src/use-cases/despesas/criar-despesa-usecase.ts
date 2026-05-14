@@ -100,7 +100,7 @@ export class CriarDespesaUseCase {
         cartaoCreditoId: cartaoId,
         mesReferencia: somarMeses(mesReferencia, index),
         dataVencimento: vencimento ? somarMeses(vencimento, index) : null,
-        fixa: totalParcelas > 1 ? false : fixa,
+        fixa,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,
         parcelamentoId,

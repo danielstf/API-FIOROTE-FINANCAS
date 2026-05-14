@@ -99,6 +99,15 @@ export class DespesaRepository implements DespesaRepositoryInterface {
                   mesReferencia: {
                     lt: dataFim,
                   },
+                  excecoesRecorrencia: {
+                    none: {
+                      usuarioId,
+                      mesReferencia: {
+                        gte: dataInicio,
+                        lt: dataFim,
+                      },
+                    },
+                  },
                 },
               ]
             : undefined,
@@ -164,6 +173,29 @@ export class DespesaRepository implements DespesaRepositoryInterface {
       where: {
         parcelamentoId,
         usuarioId,
+      },
+    });
+  }
+
+  // Oculta uma recorrencia fixa apenas no mes selecionado.
+  async createExcecaoRecorrencia(
+    despesaId: string,
+    usuarioId: string,
+    mesReferencia: Date,
+  ): Promise<void> {
+    await prisma.despesaExcecaoRecorrencia.upsert({
+      where: {
+        despesaId_usuarioId_mesReferencia: {
+          despesaId,
+          usuarioId,
+          mesReferencia,
+        },
+      },
+      update: {},
+      create: {
+        despesaId,
+        usuarioId,
+        mesReferencia,
       },
     });
   }

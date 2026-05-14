@@ -11,7 +11,14 @@ import { DataDespesaInvalidaError } from "../../use-cases/despesas/despesa-dados
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const formaPagamentoSchema = z
-  .enum(["DINHEIRO", "CARTAO_CREDITO"])
+  .enum([
+    "DINHEIRO",
+    "CARTAO_CREDITO",
+    "CARTAO_DEBITO",
+    "VALE_ALIMENTACAO",
+    "VALE_REFEICAO",
+    "BOLETO",
+  ])
   .transform((value) => value as FormaPagamentoDespesa);
 
 const criarDespesaBodySchema = z.object({

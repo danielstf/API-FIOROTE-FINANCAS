@@ -18,7 +18,14 @@ const booleanQuery = z
 const listarDespesasQuerySchema = z.object({
   mes: z.string().trim().optional(),
   formaPagamento: z
-    .enum(["DINHEIRO", "CARTAO_CREDITO"])
+    .enum([
+      "DINHEIRO",
+      "CARTAO_CREDITO",
+      "CARTAO_DEBITO",
+      "VALE_ALIMENTACAO",
+      "VALE_REFEICAO",
+      "BOLETO",
+    ])
     .transform((value) => value as FormaPagamentoDespesa)
     .optional(),
   cartaoCreditoId: z.string().uuid("Id do cartao invalido").optional(),

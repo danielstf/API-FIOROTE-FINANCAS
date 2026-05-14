@@ -15,7 +15,14 @@ const editarDespesaParamsSchema = z.object({
 });
 
 const formaPagamentoSchema = z
-  .enum(["DINHEIRO", "CARTAO_CREDITO"])
+  .enum([
+    "DINHEIRO",
+    "CARTAO_CREDITO",
+    "CARTAO_DEBITO",
+    "VALE_ALIMENTACAO",
+    "VALE_REFEICAO",
+    "BOLETO",
+  ])
   .transform((value) => value as FormaPagamentoDespesa);
 
 const editarDespesaBodySchema = z

@@ -15,6 +15,10 @@ export const categoriasDespesaPadrao = [
 export const formasPagamentoDespesaPadrao = [
   FormaPagamentoDespesa.DINHEIRO,
   FormaPagamentoDespesa.CARTAO_CREDITO,
+  FormaPagamentoDespesa.CARTAO_DEBITO,
+  FormaPagamentoDespesa.VALE_ALIMENTACAO,
+  FormaPagamentoDespesa.VALE_REFEICAO,
+  FormaPagamentoDespesa.BOLETO,
 ];
 
 // Valida datas opcionais no formato YYYY-MM-DD.

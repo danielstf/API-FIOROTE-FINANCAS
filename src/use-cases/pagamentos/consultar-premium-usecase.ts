@@ -1,4 +1,6 @@
 import { prisma } from "../../lib/prisma";
+import { mercadoPagoPayment } from "../../lib/mercadopago";
+import { aplicarPagamentoMercadoPago } from "./processar-webhook-mercado-pago-usecase";
 import {
   atualizarPremiumExpirado,
   usuarioTemPremiumAtivo,
@@ -16,6 +18,8 @@ export class UsuarioNaoEncontradoError extends Error {
 
 export class ConsultarPremiumUseCase {
   async execute({ usuarioId }: ConsultarPremiumUseCaseRequest) {
+    await sincronizarPagamentosPendentes(usuarioId);
+
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: {
@@ -51,6 +55,7 @@ export class ConsultarPremiumUseCase {
       premium: usuarioTemPremiumAtivo(usuarioAtualizado),
       exibirAnuncios: usuarioAtualizado.exibirAnuncios,
       premiumExpiraEm: usuarioAtualizado.premiumExpiraEm,
+      premiumDiasRestantes: calcularDiasRestantes(usuarioAtualizado.premiumExpiraEm),
       ultimoPagamento: ultimoPagamento
         ? {
             ...ultimoPagamento,
@@ -59,4 +64,45 @@ export class ConsultarPremiumUseCase {
         : null,
     };
   }
+}
+
+function calcularDiasRestantes(premiumExpiraEm: Date | null) {
+  if (!premiumExpiraEm) return 0;
+
+  const diff = premiumExpiraEm.getTime() - Date.now();
+
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+async function sincronizarPagamentosPendentes(usuarioId: string) {
+  const pagamentosPendentes = await prisma.pagamentoPremium.findMany({
+    where: {
+      usuarioId,
+      status: "PENDING",
+    },
+    orderBy: { criadoEm: "desc" },
+    take: 3,
+  });
+
+  await Promise.all(
+    pagamentosPendentes.map(async (pagamento) => {
+      try {
+        const resultado = await mercadoPagoPayment.search({
+          options: {
+            external_reference: pagamento.externalReference,
+            sort: "date_created",
+            criteria: "desc",
+          },
+        });
+
+        const payment = resultado.results?.[0];
+
+        if (payment) {
+          await aplicarPagamentoMercadoPago(payment);
+        }
+      } catch (error) {
+        console.warn("Nao foi possivel sincronizar pagamento pendente:", error);
+      }
+    }),
+  );
 }
