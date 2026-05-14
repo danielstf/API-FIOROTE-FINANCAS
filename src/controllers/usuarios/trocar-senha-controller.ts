@@ -8,7 +8,7 @@ export async function trocarSenhaController(
   reply: FastifyReply,
 ) {
   const trocarSenhaSchema = z.object({
-    senhaAtual: z.string().min(1, "A senha atual e obrigatoria"),
+    senhaAtual: z.string().optional(),
     novaSenha: z
       .string()
       .min(6, "A nova senha deve conter no minimo 6 caracteres"),

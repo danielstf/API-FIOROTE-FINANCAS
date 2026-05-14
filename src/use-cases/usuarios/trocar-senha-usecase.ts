@@ -3,7 +3,7 @@ import { UsuarioRepositoryInterface } from "../../repositories/interface/usuario
 
 interface TrocarSenhaUseCaseRequest {
   usuarioId: string;
-  senhaAtual: string;
+  senhaAtual?: string;
   novaSenha: string;
 }
 
@@ -28,8 +28,10 @@ export class TrocarSenhaUseCase {
     }
 
     const senhaAtualCorreta = usuario.senha
-      ? await compare(senhaAtual, usuario.senha)
-      : false;
+      ? senhaAtual
+        ? await compare(senhaAtual, usuario.senha)
+        : false
+      : true;
 
     if (!senhaAtualCorreta) {
       throw new CurrentPasswordInvalidError();

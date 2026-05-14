@@ -12,8 +12,8 @@ import { dashboardRoutes } from "./controllers/dashboard/routes";
 export const app = fastify();
 
 const allowedOrigins = new Set([
-  "http://localhost:5173",
-  "localhost:5173",
+  "http://localhost:5176",
+  "localhost:5176",
   "https://front-fiorote-financas-production.up.railway.app",
 ]);
 
