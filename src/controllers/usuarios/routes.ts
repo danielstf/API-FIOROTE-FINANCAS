@@ -9,66 +9,11 @@ import { solicitarRedefinicaoSenhaController } from "./solicitar-redefinicao-sen
 import { trocarSenhaController } from "./trocar-senha-controller";
 
 export function usuariosRoutes(app: FastifyInstance) {
-  app.post(
-    "/usuarios",
-    {
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: "1 minute",
-        },
-      },
-    },
-    createUsuarioController,
-  );
-  app.post(
-    "/login",
-    {
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: "1 minute",
-        },
-      },
-    },
-    loginUsuarioController,
-  );
-  app.post(
-    "/login/google",
-    {
-      config: {
-        rateLimit: {
-          max: 20,
-          timeWindow: "1 minute",
-        },
-      },
-    },
-    loginGoogleController,
-  );
-  app.post(
-    "/esqueci-senha",
-    {
-      config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: "15 minutes",
-        },
-      },
-    },
-    solicitarRedefinicaoSenhaController,
-  );
-  app.post(
-    "/redefinir-senha",
-    {
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: "15 minutes",
-        },
-      },
-    },
-    redefinirSenhaController,
-  );
+  app.post("/usuarios", createUsuarioController);
+  app.post("/login", loginUsuarioController);
+  app.post("/login/google", loginGoogleController);
+  app.post("/esqueci-senha", solicitarRedefinicaoSenhaController);
+  app.post("/redefinir-senha", redefinirSenhaController);
   app.patch(
     "/usuarios/perfil",
     {

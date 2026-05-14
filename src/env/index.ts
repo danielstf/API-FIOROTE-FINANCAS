@@ -19,18 +19,6 @@ const envSchema = z.object({
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),
   PREMIUM_PRICE: z.coerce.number().positive().default(19.9),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
-}).superRefine((env, ctx) => {
-  if (env.NODE_ENV !== "production") {
-    return;
-  }
-
-  if (env.JWT_SECRET.length < 32) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["JWT_SECRET"],
-      message: "JWT_SECRET deve ter pelo menos 32 caracteres em producao",
-    });
-  }
 });
 
 const _env = envSchema.safeParse(process.env);
