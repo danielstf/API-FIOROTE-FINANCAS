@@ -1,4 +1,4 @@
-import fastifyJwt from "@fastify/jwt";
+﻿import fastifyJwt from "@fastify/jwt";
 import fastifyCors from "@fastify/cors";
 import { fastify } from "fastify";
 import { env } from "./env";
@@ -8,6 +8,7 @@ import { receitasRoutes } from "./controllers/receitas/routes";
 import { despesasRoutes } from "./controllers/despesas/routes";
 import { cartoesRoutes } from "./controllers/cartoes/routes";
 import { dashboardRoutes } from "./controllers/dashboard/routes";
+import { sugestoesRoutes } from "./controllers/sugestoes/routes";
 
 export const app = fastify();
 
@@ -53,3 +54,5 @@ app.register(receitasRoutes);
 app.register(despesasRoutes);
 app.register(cartoesRoutes);
 app.register(dashboardRoutes);
+app.register(sugestoesRoutes);
+

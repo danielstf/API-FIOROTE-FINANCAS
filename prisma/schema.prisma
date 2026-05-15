@@ -16,7 +16,7 @@ model Usuario {
 
   plano          Plano   @default(FREE) // Novo campo para plano
   premiumExpiraEm DateTime? // Data em que o plano premium deixa de valer
-  exibirAnuncios Boolean @default(true) // Se usuário Free exibe anúncios
+  exibirAnuncios Boolean @default(true) // Se usuÃ¡rio Free exibe anÃºncios
 
   role Role @default(USER)
 
@@ -31,6 +31,7 @@ model Usuario {
   pagamentosPremium PagamentoPremium[]
   cartoesCredito CartaoCredito[]
   despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
+  sugestoes Sugestao[]
 }
 
 model PagamentoPremium {
@@ -118,6 +119,20 @@ model CartaoCredito {
   @@unique([usuarioId, nome])
 }
 
+
+model Sugestao {
+  id        String       @id @default(uuid())
+  tipo      SugestaoTipo
+  titulo    String
+  mensagem  String
+  criadoEm  DateTime     @default(now())
+
+  usuarioId String
+  usuario   Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, criadoEm])
+  @@index([tipo, criadoEm])
+}
 model Categoria {
   id       String        @id @default(uuid())
   nome     String
@@ -161,4 +176,11 @@ enum FormaPagamentoDespesa {
   VALE_ALIMENTACAO
   VALE_REFEICAO
   BOLETO
+}
+
+enum SugestaoTipo {
+  RECLAMACAO
+  ELOGIO
+  SUGESTAO
+  OUTRO
 }
