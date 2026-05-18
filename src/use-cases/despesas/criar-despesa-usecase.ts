@@ -8,6 +8,7 @@ import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despes
 
 interface CriarDespesaUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   nome: string;
   valor: number;
   categoria?: string | null;
@@ -37,6 +38,12 @@ export class CartaoNaoEncontradoError extends Error {
   }
 }
 
+export class DespesaFixaPremiumObrigatorioError extends Error {
+  constructor() {
+    super("Despesa fixa e um recurso Premium");
+  }
+}
+
 export class CriarDespesaUseCase {
   constructor(
     private despesaRepository: DespesaRepositoryInterface,
@@ -46,6 +53,7 @@ export class CriarDespesaUseCase {
 
   async execute({
     usuarioId,
+    perfilFinanceiroId,
     nome,
     valor,
     categoria,
@@ -63,6 +71,10 @@ export class CriarDespesaUseCase {
       throw new UsuarioNaoEncontradoError();
     }
 
+    if (fixa && usuario.plano !== "PREMIUM") {
+      throw new DespesaFixaPremiumObrigatorioError();
+    }
+
     let cartaoId: string | null = null;
 
     if (formaPagamento === FormaPagamentoDespesa.CARTAO_CREDITO) {
@@ -73,6 +85,7 @@ export class CriarDespesaUseCase {
       const cartao = await this.cartaoRepository.findByIdAndUsuario(
         cartaoCreditoId,
         usuarioId,
+        perfilFinanceiroId,
       );
 
       if (!cartao) {
@@ -90,6 +103,7 @@ export class CriarDespesaUseCase {
     const despesas = await this.despesaRepository.createMany(
       Array.from({ length: totalParcelas }, (_, index) => ({
         usuarioId,
+        perfilFinanceiroId,
         descricao:
           totalParcelas > 1
             ? `${nome.trim()} (${index + 1}/${totalParcelas})`

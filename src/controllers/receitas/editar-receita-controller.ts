@@ -3,6 +3,7 @@ import z from "zod";
 import { makeEditarReceitaFactory } from "../../factory/receitas-factory/editar-receita-factory";
 import { ReceitaNaoEncontradaError } from "../../use-cases/receitas/obter-receita-usecase";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 
 const editarReceitaParamsSchema = z.object({
   receitaId: z.string().uuid("Id da receita invalido"),
@@ -42,6 +43,7 @@ export async function editarReceitaController(
 
     const receita = await editarReceita.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       receitaId,
       nome,
       valor,

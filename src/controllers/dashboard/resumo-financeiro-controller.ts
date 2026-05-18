@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeResumoFinanceiroFactory } from "../../factory/dashboard-factory/resumo-financeiro-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const resumoFinanceiroQuerySchema = z.object({
@@ -20,6 +21,7 @@ export async function resumoFinanceiroController(
 
     const resultado = await resumoFinanceiro.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       mes,
       meses,
     });

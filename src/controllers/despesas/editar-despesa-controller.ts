@@ -2,6 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeEditarDespesaFactory } from "../../factory/despesas-factory/editar-despesa-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import {
   CartaoNaoEncontradoError,
   CartaoObrigatorioError,
@@ -77,6 +78,7 @@ export async function editarDespesaController(
 
     const despesa = await editarDespesa.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       despesaId,
       nome,
       valor,

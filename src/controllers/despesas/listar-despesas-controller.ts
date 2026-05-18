@@ -2,6 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeListarDespesasFactory } from "../../factory/despesas-factory/listar-despesas-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const booleanQuery = z
@@ -53,6 +54,7 @@ export async function listarDespesasController(
 
     const resultado = await listarDespesas.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       mes,
       formaPagamento,
       cartaoCreditoId,

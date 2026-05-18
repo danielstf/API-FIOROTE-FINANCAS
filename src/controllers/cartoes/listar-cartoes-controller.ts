@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { makeListarCartoesFactory } from "../../factory/cartoes-factory/listar-cartoes-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 
 export async function listarCartoesController(
   request: FastifyRequest,
@@ -10,6 +11,7 @@ export async function listarCartoesController(
 
     const resultado = await listarCartoes.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
     });
 
     return reply.status(200).send(resultado);

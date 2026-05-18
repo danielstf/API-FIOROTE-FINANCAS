@@ -1,7 +1,8 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeCriarReceitaFactory } from "../../factory/receitas-factory/criar-receita-factory";
-import { UsuarioNaoEncontradoError } from "../../use-cases/receitas/criar-receita-usecase";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
+import { PlanoPremiumObrigatorioError, UsuarioNaoEncontradoError } from "../../use-cases/receitas/criar-receita-usecase";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const criarReceitaBodySchema = z.object({
@@ -25,6 +26,7 @@ export async function criarReceitaController(
 
     const receita = await criarReceita.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       nome,
       valor,
       mes,
@@ -36,6 +38,10 @@ export async function criarReceitaController(
   } catch (error) {
     if (error instanceof UsuarioNaoEncontradoError) {
       return reply.status(404).send({ message: error.message });
+    }
+
+    if (error instanceof PlanoPremiumObrigatorioError) {
+      return reply.status(403).send({ message: error.message });
     }
 
     if (error instanceof MesReceitaInvalidoError) {

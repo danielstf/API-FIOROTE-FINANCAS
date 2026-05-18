@@ -41,6 +41,13 @@ export class ExcluirDespesaUseCase {
       return;
     }
 
+    if (despesa.fixa && excluirTodas) {
+      await this.despesaRepository.update(despesa.id, {
+        recorrenciaFim: mes ? criarDataDoMes(mes) : despesa.mesReferencia,
+      });
+      return;
+    }
+
     if (excluirTodas && despesa.parcelamentoId) {
       await this.despesaRepository.deleteByParcelamento(
         despesa.parcelamentoId,

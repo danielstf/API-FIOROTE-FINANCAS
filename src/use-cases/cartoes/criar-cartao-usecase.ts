@@ -4,6 +4,7 @@ import { CartaoJaExisteError, formatarCartao } from "./cartao-dados";
 
 interface CriarCartaoUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   nome: string;
 }
 
@@ -19,7 +20,7 @@ export class CriarCartaoUseCase {
     private usuarioRepository: UsuarioRepositoryInterface,
   ) {}
 
-  async execute({ usuarioId, nome }: CriarCartaoUseCaseRequest) {
+  async execute({ usuarioId, perfilFinanceiroId, nome }: CriarCartaoUseCaseRequest) {
     // Confere se o usuario existe antes de criar o cartao.
     const usuario = await this.usuarioRepository.findById(usuarioId);
 
@@ -31,6 +32,7 @@ export class CriarCartaoUseCase {
     const cartaoExistente = await this.cartaoRepository.findByNomeAndUsuario(
       nomeFormatado,
       usuarioId,
+      perfilFinanceiroId,
     );
 
     if (cartaoExistente) {
@@ -39,6 +41,7 @@ export class CriarCartaoUseCase {
 
     const cartao = await this.cartaoRepository.create({
       usuarioId,
+      perfilFinanceiroId,
       nome: nomeFormatado,
     });
 

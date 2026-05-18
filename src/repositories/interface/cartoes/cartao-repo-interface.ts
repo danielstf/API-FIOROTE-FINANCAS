@@ -2,6 +2,7 @@ import { CartaoCredito } from "@prisma/client";
 
 interface CriarCartaoData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   nome: string;
 }
 
@@ -14,13 +15,13 @@ export interface CartaoRepositoryInterface {
   create(data: CriarCartaoData): Promise<CartaoCredito>;
 
   // Lista os cartoes cadastrados pelo usuario.
-  listByUsuario(usuarioId: string): Promise<CartaoCredito[]>;
+  listByUsuario(usuarioId: string, perfilFinanceiroId?: string | null): Promise<CartaoCredito[]>;
 
   // Busca um cartao garantindo que ele pertence ao usuario.
-  findByIdAndUsuario(cartaoId: string, usuarioId: string): Promise<CartaoCredito | null>;
+  findByIdAndUsuario(cartaoId: string, usuarioId: string, perfilFinanceiroId?: string | null): Promise<CartaoCredito | null>;
 
   // Busca cartao por nome para evitar duplicidade por usuario.
-  findByNomeAndUsuario(nome: string, usuarioId: string): Promise<CartaoCredito | null>;
+  findByNomeAndUsuario(nome: string, usuarioId: string, perfilFinanceiroId?: string | null): Promise<CartaoCredito | null>;
 
   // Atualiza o nome do cartao.
   update(cartaoId: string, data: AtualizarCartaoData): Promise<CartaoCredito>;

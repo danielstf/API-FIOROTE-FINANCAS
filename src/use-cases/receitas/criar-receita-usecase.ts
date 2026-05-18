@@ -5,6 +5,7 @@ import { criarDataDoMes, formatarMesReceita, somarMeses } from "./receita-mes";
 
 interface CriarReceitaUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   nome: string;
   valor: number;
   mes: string;
@@ -18,6 +19,12 @@ export class UsuarioNaoEncontradoError extends Error {
   }
 }
 
+export class PlanoPremiumObrigatorioError extends Error {
+  constructor() {
+    super("Receita fixa e um recurso Premium");
+  }
+}
+
 export class CriarReceitaUseCase {
   constructor(
     private receitaRepository: ReceitaRepositoryInterface,
@@ -26,6 +33,7 @@ export class CriarReceitaUseCase {
 
   async execute({
     usuarioId,
+    perfilFinanceiroId,
     nome,
     valor,
     mes,
@@ -37,6 +45,10 @@ export class CriarReceitaUseCase {
 
     if (!usuario) {
       throw new UsuarioNaoEncontradoError();
+    }
+
+    if (fixa && usuario.plano !== "PREMIUM") {
+      throw new PlanoPremiumObrigatorioError();
     }
 
     // O mes e salvo como uma data no primeiro dia do mes informado.
@@ -53,6 +65,7 @@ export class CriarReceitaUseCase {
         valor,
         data: somarMeses(data, index),
         usuarioId,
+        perfilFinanceiroId,
         fixa: totalParcelas > 1 ? false : fixa,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,

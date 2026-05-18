@@ -2,6 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { CartaoRepositoryInterface } from "../../repositories/interface/cartoes/cartao-repo-interface";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despesa-dados";
+import { criarDataDoMes, somarMeses } from "../receitas/receita-mes";
 import {
   CartaoNaoEncontradoError,
   CartaoObrigatorioError,
@@ -10,6 +11,7 @@ import { DespesaNaoEncontradaError } from "./obter-despesa-usecase";
 
 interface EditarDespesaUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   despesaId: string;
   nome?: string;
   valor?: number;
@@ -29,6 +31,7 @@ export class EditarDespesaUseCase {
 
   async execute({
     usuarioId,
+    perfilFinanceiroId,
     despesaId,
     nome,
     valor,
@@ -66,6 +69,7 @@ export class EditarDespesaUseCase {
       const cartao = await this.cartaoRepository.findByIdAndUsuario(
         cartaoInformado,
         usuarioId,
+        perfilFinanceiroId,
       );
 
       if (!cartao) {
@@ -77,6 +81,48 @@ export class EditarDespesaUseCase {
 
     if (formaFinal !== FormaPagamentoDespesa.CARTAO_CREDITO) {
       cartaoId = null;
+    }
+
+    if (despesaExistente.fixa && mes) {
+      const mesReferencia = criarDataDoMes(mes);
+      const diferencaMeses =
+        (mesReferencia.getFullYear() - despesaExistente.mesReferencia.getFullYear()) *
+          12 +
+        (mesReferencia.getMonth() - despesaExistente.mesReferencia.getMonth());
+      const vencimentoFinal =
+        vencimento === undefined
+          ? despesaExistente.dataVencimento
+            ? somarMeses(despesaExistente.dataVencimento, Math.max(diferencaMeses, 0))
+            : null
+          : vencimento;
+
+      await this.despesaRepository.createExcecaoRecorrencia(
+        despesaExistente.id,
+        usuarioId,
+        mesReferencia,
+      );
+
+      const despesaDoMes = await this.despesaRepository.create({
+        usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? despesaExistente.perfilFinanceiroId,
+        descricao: nome?.trim() ?? despesaExistente.descricao,
+        valor: valor ?? Number(despesaExistente.valor),
+        categoriaNome:
+          categoria === undefined
+            ? despesaExistente.categoriaNome
+            : categoria?.trim() || null,
+        formaPagamento: formaFinal,
+        cartaoCreditoId:
+          cartaoId === undefined ? despesaExistente.cartaoCreditoId : cartaoId,
+        mesReferencia,
+        dataVencimento: vencimentoFinal,
+        fixa: false,
+        numeroParcelas: null,
+        parcelaAtual: null,
+        parcelamentoId: null,
+      });
+
+      return formatarDespesa(despesaDoMes);
     }
 
     const despesa = await this.despesaRepository.update(despesaId, {

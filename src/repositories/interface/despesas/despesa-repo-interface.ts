@@ -2,6 +2,7 @@ import { Despesa, FormaPagamentoDespesa } from "@prisma/client";
 
 interface CriarDespesaData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   descricao: string;
   valor: number;
   categoriaNome?: string | null;
@@ -10,6 +11,7 @@ interface CriarDespesaData {
   mesReferencia: Date;
   dataVencimento?: Date | null;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -17,6 +19,7 @@ interface CriarDespesaData {
 
 interface ListarPorUsuarioParams {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   formaPagamento?: FormaPagamentoDespesa;
   cartaoCreditoId?: string;
   dataInicio?: Date;
@@ -36,6 +39,7 @@ interface AtualizarDespesaData {
   paga?: boolean;
   dataPagamento?: Date | null;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;

@@ -4,6 +4,7 @@ import { DespesaRepositoryInterface } from "../../interface/despesas/despesa-rep
 
 interface CriarDespesaData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   descricao: string;
   valor: number;
   categoriaNome?: string | null;
@@ -12,6 +13,7 @@ interface CriarDespesaData {
   mesReferencia: Date;
   dataVencimento?: Date | null;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -19,6 +21,7 @@ interface CriarDespesaData {
 
 interface ListarPorUsuarioParams {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   formaPagamento?: FormaPagamentoDespesa;
   cartaoCreditoId?: string;
   dataInicio?: Date;
@@ -38,6 +41,7 @@ interface AtualizarDespesaData {
   paga?: boolean;
   dataPagamento?: Date | null;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -69,6 +73,7 @@ export class DespesaRepository implements DespesaRepositoryInterface {
   // Lista despesas do usuario, incluindo filtro por forma, vencidas e status pago.
   async listByUsuario({
     usuarioId,
+    perfilFinanceiroId,
     formaPagamento,
     cartaoCreditoId,
     dataInicio,
@@ -82,6 +87,7 @@ export class DespesaRepository implements DespesaRepositoryInterface {
     const despesas = await prisma.despesa.findMany({
       where: {
         usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? null,
         formaPagamento,
         cartaoCreditoId,
         paga,
@@ -89,6 +95,7 @@ export class DespesaRepository implements DespesaRepositoryInterface {
           dataInicio && dataFim
             ? [
                 {
+                  fixa: false,
                   mesReferencia: {
                     gte: dataInicio,
                     lt: dataFim,
@@ -99,6 +106,14 @@ export class DespesaRepository implements DespesaRepositoryInterface {
                   mesReferencia: {
                     lt: dataFim,
                   },
+                  OR: [
+                    { recorrenciaFim: null },
+                    {
+                      recorrenciaFim: {
+                        gt: dataInicio,
+                      },
+                    },
+                  ],
                   excecoesRecorrencia: {
                     none: {
                       usuarioId,

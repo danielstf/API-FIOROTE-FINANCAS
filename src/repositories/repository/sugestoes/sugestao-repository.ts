@@ -46,4 +46,26 @@ export class SugestaoRepository implements SugestaoRepositoryInterface {
 
     return sugestoes;
   }
+
+  async finish(sugestaoId: string): Promise<SugestaoComUsuario> {
+    return prisma.sugestao.update({
+      where: { id: sugestaoId },
+      data: { status: "FINALIZADO" },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async delete(sugestaoId: string): Promise<void> {
+    await prisma.sugestao.delete({
+      where: { id: sugestaoId },
+    });
+  }
 }

@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeCriarCartaoFactory } from "../../factory/cartoes-factory/criar-cartao-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import {
   CartaoJaExisteError,
 } from "../../use-cases/cartoes/cartao-dados";
@@ -22,6 +23,7 @@ export async function criarCartaoController(
 
     const cartao = await criarCartao.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       nome,
     });
 

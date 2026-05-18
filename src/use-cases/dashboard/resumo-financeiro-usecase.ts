@@ -11,6 +11,7 @@ import { despesaEstaVencida } from "../despesas/despesa-dados";
 
 interface ResumoFinanceiroUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   mes: string;
   meses: number;
 }
@@ -37,24 +38,39 @@ export class ResumoFinanceiroUseCase {
     private despesaRepository: DespesaRepositoryInterface,
   ) {}
 
-  async execute({ usuarioId, mes, meses }: ResumoFinanceiroUseCaseRequest) {
+  async execute({
+    usuarioId,
+    perfilFinanceiroId,
+    mes,
+    meses,
+  }: ResumoFinanceiroUseCaseRequest) {
     const mesAtual = criarDataDoMes(mes);
     const quantidadeMeses = Math.min(Math.max(meses, 1), 24);
     const primeiroMesGrafico = somarMeses(mesAtual, -(quantidadeMeses - 1));
 
-    const saldoInicial = await this.calcularSaldoAteMes(usuarioId, mesAtual);
+    const saldoInicial = await this.calcularSaldoAteMes(
+      usuarioId,
+      perfilFinanceiroId,
+      mesAtual,
+    );
     const resumoMes = await this.calcularResumoDoMes(
       usuarioId,
+      perfilFinanceiroId,
       mesAtual,
       saldoInicial,
     );
     const evolucao = await this.calcularEvolucao(
       usuarioId,
+      perfilFinanceiroId,
       primeiroMesGrafico,
       quantidadeMeses,
     );
 
-    const despesasDoMes = await this.buscarDespesasDoMes(usuarioId, mesAtual);
+    const despesasDoMes = await this.buscarDespesasDoMes(
+      usuarioId,
+      perfilFinanceiroId,
+      mesAtual,
+    );
 
     return {
       mes,
@@ -71,7 +87,11 @@ export class ResumoFinanceiroUseCase {
     };
   }
 
-  private async calcularSaldoAteMes(usuarioId: string, mesLimite: Date) {
+  private async calcularSaldoAteMes(
+    usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
+    mesLimite: Date,
+  ) {
     let saldo = 0;
     const mesCursor = new Date(2000, 0, 1);
 
@@ -81,11 +101,13 @@ export class ResumoFinanceiroUseCase {
       const [receitas, despesas] = await Promise.all([
         this.receitaRepository.listByUsuario({
           usuarioId,
+          perfilFinanceiroId,
           dataInicio: intervalo.inicio,
           dataFim: intervalo.fim,
         }),
         this.despesaRepository.listByUsuario({
           usuarioId,
+          perfilFinanceiroId,
           dataInicio: intervalo.inicio,
           dataFim: intervalo.fim,
         }),
@@ -100,12 +122,13 @@ export class ResumoFinanceiroUseCase {
 
   private async calcularResumoDoMes(
     usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
     mes: Date,
     saldoInicial: number,
   ) {
     const [receitas, despesas] = await Promise.all([
-      this.buscarReceitasDoMes(usuarioId, mes),
-      this.buscarDespesasDoMes(usuarioId, mes),
+      this.buscarReceitasDoMes(usuarioId, perfilFinanceiroId, mes),
+      this.buscarDespesasDoMes(usuarioId, perfilFinanceiroId, mes),
     ]);
 
     const totalReceitas = somarReceitas(receitas);
@@ -130,17 +153,22 @@ export class ResumoFinanceiroUseCase {
 
   private async calcularEvolucao(
     usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
     primeiroMes: Date,
     quantidadeMeses: number,
   ) {
     const evolucao: MovimentoMensal[] = [];
-    let saldo = await this.calcularSaldoAteMes(usuarioId, primeiroMes);
+    let saldo = await this.calcularSaldoAteMes(
+      usuarioId,
+      perfilFinanceiroId,
+      primeiroMes,
+    );
 
     for (let index = 0; index < quantidadeMeses; index++) {
       const mes = somarMeses(primeiroMes, index);
       const [receitas, despesas] = await Promise.all([
-        this.buscarReceitasDoMes(usuarioId, mes),
-        this.buscarDespesasDoMes(usuarioId, mes),
+        this.buscarReceitasDoMes(usuarioId, perfilFinanceiroId, mes),
+        this.buscarDespesasDoMes(usuarioId, perfilFinanceiroId, mes),
       ]);
 
       const totalReceitas = somarReceitas(receitas);
@@ -161,21 +189,31 @@ export class ResumoFinanceiroUseCase {
     return evolucao;
   }
 
-  private async buscarReceitasDoMes(usuarioId: string, mes: Date) {
+  private async buscarReceitasDoMes(
+    usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
+    mes: Date,
+  ) {
     const intervalo = criarIntervaloDoMes(formatarMesReceita(mes));
 
     return this.receitaRepository.listByUsuario({
       usuarioId,
+      perfilFinanceiroId,
       dataInicio: intervalo.inicio,
       dataFim: intervalo.fim,
     });
   }
 
-  private async buscarDespesasDoMes(usuarioId: string, mes: Date) {
+  private async buscarDespesasDoMes(
+    usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
+    mes: Date,
+  ) {
     const intervalo = criarIntervaloDoMes(formatarMesReceita(mes));
 
     return this.despesaRepository.listByUsuario({
       usuarioId,
+      perfilFinanceiroId,
       dataInicio: intervalo.inicio,
       dataFim: intervalo.fim,
     });

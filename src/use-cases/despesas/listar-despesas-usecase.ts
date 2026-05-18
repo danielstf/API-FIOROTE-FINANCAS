@@ -5,6 +5,7 @@ import { criarIntervaloDoMes } from "../receitas/receita-mes";
 
 interface ListarDespesasUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   mes?: string;
   formaPagamento?: FormaPagamentoDespesa;
   cartaoCreditoId?: string;
@@ -18,6 +19,7 @@ export class ListarDespesasUseCase {
 
   async execute({
     usuarioId,
+    perfilFinanceiroId,
     mes,
     formaPagamento,
     cartaoCreditoId,
@@ -33,6 +35,7 @@ export class ListarDespesasUseCase {
 
     const despesas = await this.despesaRepository.listByUsuario({
       usuarioId,
+      perfilFinanceiroId,
       formaPagamento: filtroForma,
       cartaoCreditoId,
       dataInicio: filtroMes?.inicio,

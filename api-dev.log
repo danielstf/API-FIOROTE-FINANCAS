@@ -1,0 +1,5 @@
+
+> api-fiorote-financas@1.0.0 dev
+> tsx watch src/server.ts
+
+🚀 Server listening in http://localhost:3333

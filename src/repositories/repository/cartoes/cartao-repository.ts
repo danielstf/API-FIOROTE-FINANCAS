@@ -4,6 +4,7 @@ import { CartaoRepositoryInterface } from "../../interface/cartoes/cartao-repo-i
 
 interface CriarCartaoData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   nome: string;
 }
 
@@ -22,9 +23,12 @@ export class CartaoRepository implements CartaoRepositoryInterface {
   }
 
   // Lista cartoes do usuario em ordem alfabetica.
-  async listByUsuario(usuarioId: string): Promise<CartaoCredito[]> {
+  async listByUsuario(
+    usuarioId: string,
+    perfilFinanceiroId?: string | null,
+  ): Promise<CartaoCredito[]> {
     const cartoes = await prisma.cartaoCredito.findMany({
-      where: { usuarioId },
+      where: { usuarioId, perfilFinanceiroId: perfilFinanceiroId ?? null },
       orderBy: { nome: "asc" },
     });
 
@@ -35,11 +39,13 @@ export class CartaoRepository implements CartaoRepositoryInterface {
   async findByIdAndUsuario(
     cartaoId: string,
     usuarioId: string,
+    perfilFinanceiroId?: string | null,
   ): Promise<CartaoCredito | null> {
     const cartao = await prisma.cartaoCredito.findFirst({
       where: {
         id: cartaoId,
         usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? null,
       },
     });
 
@@ -50,11 +56,13 @@ export class CartaoRepository implements CartaoRepositoryInterface {
   async findByNomeAndUsuario(
     nome: string,
     usuarioId: string,
+    perfilFinanceiroId?: string | null,
   ): Promise<CartaoCredito | null> {
     const cartao = await prisma.cartaoCredito.findFirst({
       where: {
         nome,
         usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? null,
       },
     });
 

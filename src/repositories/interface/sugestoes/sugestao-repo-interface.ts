@@ -18,4 +18,6 @@ interface CriarSugestaoData {
 export interface SugestaoRepositoryInterface {
   create(data: CriarSugestaoData): Promise<SugestaoComUsuario>;
   listAll(): Promise<SugestaoComUsuario[]>;
+  finish(sugestaoId: string): Promise<SugestaoComUsuario>;
+  delete(sugestaoId: string): Promise<void>;
 }

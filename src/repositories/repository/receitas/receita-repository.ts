@@ -4,10 +4,12 @@ import { ReceitaRepositoryInterface } from "../../interface/receitas/receita-rep
 
 interface CriarReceitaData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   descricao: string;
   valor: number;
   data: Date;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -15,6 +17,7 @@ interface CriarReceitaData {
 
 interface ListarPorUsuarioParams {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   dataInicio?: Date;
   dataFim?: Date;
 }
@@ -24,6 +27,7 @@ interface AtualizarReceitaData {
   valor?: number;
   data?: Date;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -55,16 +59,19 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
   // Lista receitas do usuario, filtrando por intervalo quando informado.
   async listByUsuario({
     usuarioId,
+    perfilFinanceiroId,
     dataInicio,
     dataFim,
   }: ListarPorUsuarioParams): Promise<Receita[]> {
     const receitas = await prisma.receita.findMany({
       where: {
         usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? null,
         OR:
           dataInicio && dataFim
             ? [
                 {
+                  fixa: false,
                   data: {
                     gte: dataInicio,
                     lt: dataFim,
@@ -74,6 +81,23 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
                   fixa: true,
                   data: {
                     lt: dataFim,
+                  },
+                  OR: [
+                    { recorrenciaFim: null },
+                    {
+                      recorrenciaFim: {
+                        gt: dataInicio,
+                      },
+                    },
+                  ],
+                  excecoesRecorrencia: {
+                    none: {
+                      usuarioId,
+                      mesReferencia: {
+                        gte: dataInicio,
+                        lt: dataFim,
+                      },
+                    },
                   },
                 },
               ]
@@ -114,6 +138,28 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
   async delete(receitaId: string): Promise<void> {
     await prisma.receita.delete({
       where: { id: receitaId },
+    });
+  }
+
+  async createExcecaoRecorrencia(
+    receitaId: string,
+    usuarioId: string,
+    mesReferencia: Date,
+  ): Promise<void> {
+    await prisma.receitaExcecaoRecorrencia.upsert({
+      where: {
+        receitaId_usuarioId_mesReferencia: {
+          receitaId,
+          usuarioId,
+          mesReferencia,
+        },
+      },
+      update: {},
+      create: {
+        receitaId,
+        usuarioId,
+        mesReferencia,
+      },
     });
   }
 }

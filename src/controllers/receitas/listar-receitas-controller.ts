@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeListarReceitasFactory } from "../../factory/receitas-factory/listar-receitas-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const listarReceitasQuerySchema = z.object({
@@ -19,6 +20,7 @@ export async function listarReceitasController(
 
     const resultado = await listarReceitas.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       mes,
     });
 

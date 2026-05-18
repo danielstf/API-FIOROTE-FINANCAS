@@ -11,8 +11,30 @@ import { buscarPerfilController } from "./buscar-perfil-controller";
 
 export function usuariosRoutes(app: FastifyInstance) {
   app.post("/usuarios", createUsuarioController);
-  app.post("/login", loginUsuarioController);
-  app.post("/login/google", loginGoogleController);
+    app.post(
+    "/login",
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "15 minutes",
+        },
+      },
+    },
+    loginUsuarioController,
+  );
+    app.post(
+    "/login/google",
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "15 minutes",
+        },
+      },
+    },
+    loginGoogleController,
+  );
   app.post("/esqueci-senha", solicitarRedefinicaoSenhaController);
   app.post("/redefinir-senha", redefinirSenhaController);
   app.get(

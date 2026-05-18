@@ -4,6 +4,7 @@ import { ReceitaNaoEncontradaError } from "./obter-receita-usecase";
 
 interface EditarReceitaUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   receitaId: string;
   nome?: string;
   valor?: number;
@@ -16,6 +17,7 @@ export class EditarReceitaUseCase {
 
   async execute({
     usuarioId,
+    perfilFinanceiroId,
     receitaId,
     nome,
     valor,
@@ -30,6 +32,41 @@ export class EditarReceitaUseCase {
 
     if (!receitaExistente) {
       throw new ReceitaNaoEncontradaError();
+    }
+
+    if (receitaExistente.fixa && mes) {
+      const mesReferencia = criarDataDoMes(mes);
+
+      await this.receitaRepository.createExcecaoRecorrencia(
+        receitaExistente.id,
+        usuarioId,
+        mesReferencia,
+      );
+
+      const receitaDoMes = await this.receitaRepository.create({
+        usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? receitaExistente.perfilFinanceiroId,
+        descricao: nome?.trim() ?? receitaExistente.descricao,
+        valor: valor ?? Number(receitaExistente.valor),
+        data: mesReferencia,
+        fixa: false,
+        numeroParcelas: null,
+        parcelaAtual: null,
+        parcelamentoId: null,
+      });
+
+      return {
+        id: receitaDoMes.id,
+        nome: receitaDoMes.descricao,
+        valor: Number(receitaDoMes.valor),
+        mes: formatarMesReceita(receitaDoMes.data),
+        data: receitaDoMes.data,
+        fixa: receitaDoMes.fixa,
+        numeroParcelas: receitaDoMes.numeroParcelas,
+        parcelaAtual: receitaDoMes.parcelaAtual,
+        parcelamentoId: receitaDoMes.parcelamentoId,
+        criadoEm: receitaDoMes.criadoEm,
+      };
     }
 
     const receita = await this.receitaRepository.update(receitaId, {

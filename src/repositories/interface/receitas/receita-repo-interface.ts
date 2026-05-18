@@ -2,10 +2,12 @@ import { Receita } from "@prisma/client";
 
 interface CriarReceitaData {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   descricao: string;
   valor: number;
   data: Date;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -13,6 +15,7 @@ interface CriarReceitaData {
 
 interface ListarPorUsuarioParams {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   dataInicio?: Date;
   dataFim?: Date;
 }
@@ -22,6 +25,7 @@ interface AtualizarReceitaData {
   valor?: number;
   data?: Date;
   fixa?: boolean;
+  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -45,4 +49,10 @@ export interface ReceitaRepositoryInterface {
 
   // Remove uma receita depois que o use case confirmou a permissao do usuario.
   delete(receitaId: string): Promise<void>;
+
+  createExcecaoRecorrencia(
+    receitaId: string,
+    usuarioId: string,
+    mesReferencia: Date,
+  ): Promise<void>;
 }

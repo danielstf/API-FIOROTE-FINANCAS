@@ -2,9 +2,11 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeCriarDespesaFactory } from "../../factory/despesas-factory/criar-despesa-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import {
   CartaoNaoEncontradoError,
   CartaoObrigatorioError,
+  DespesaFixaPremiumObrigatorioError,
   UsuarioNaoEncontradoError,
 } from "../../use-cases/despesas/criar-despesa-usecase";
 import { DataDespesaInvalidaError } from "../../use-cases/despesas/despesa-dados";
@@ -56,6 +58,7 @@ export async function criarDespesaController(
 
     const despesa = await criarDespesa.execute({
       usuarioId: request.user.sub,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
       nome,
       valor,
       categoria,
@@ -71,6 +74,10 @@ export async function criarDespesaController(
   } catch (error) {
     if (error instanceof UsuarioNaoEncontradoError) {
       return reply.status(404).send({ message: error.message });
+    }
+
+    if (error instanceof DespesaFixaPremiumObrigatorioError) {
+      return reply.status(403).send({ message: error.message });
     }
 
     if (error instanceof DataDespesaInvalidaError) {

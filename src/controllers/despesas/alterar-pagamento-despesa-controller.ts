@@ -10,6 +10,7 @@ const alterarPagamentoParamsSchema = z.object({
 const alterarPagamentoBodySchema = z.object({
   // Usado pelo clique no icone de pagamento realizado.
   paga: z.boolean(),
+  mes: z.string().trim().optional(),
 });
 
 export async function alterarPagamentoDespesaController(
@@ -17,7 +18,7 @@ export async function alterarPagamentoDespesaController(
   reply: FastifyReply,
 ) {
   const { despesaId } = alterarPagamentoParamsSchema.parse(request.params);
-  const { paga } = alterarPagamentoBodySchema.parse(request.body);
+  const { paga, mes } = alterarPagamentoBodySchema.parse(request.body);
 
   try {
     const alterarPagamentoDespesa = makeAlterarPagamentoDespesaFactory();
@@ -26,6 +27,7 @@ export async function alterarPagamentoDespesaController(
       usuarioId: request.user.sub,
       despesaId,
       paga,
+      mes,
     });
 
     return reply.status(200).send(despesa);

@@ -16,7 +16,7 @@ model Usuario {
 
   plano          Plano   @default(FREE) // Novo campo para plano
   premiumExpiraEm DateTime? // Data em que o plano premium deixa de valer
-  exibirAnuncios Boolean @default(true) // Se usuÃ¡rio Free exibe anÃºncios
+  exibirAnuncios Boolean @default(true) // Se usuário Free exibe anúncios
 
   role Role @default(USER)
 
@@ -25,6 +25,7 @@ model Usuario {
 
   receitas Receita[]
   despesas Despesa[]
+  receitasExcecoesRecorrencia ReceitaExcecaoRecorrencia[]
 
   categorias Categoria[]
 
@@ -32,8 +33,27 @@ model Usuario {
   cartoesCredito CartaoCredito[]
   despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
   sugestoes Sugestao[]
+  perfisFinanceiros PerfilFinanceiro[]
 }
 
+
+model PerfilFinanceiro {
+  id        String   @id @default(uuid())
+  nome      String
+  avatar    String   @default("user")
+  tema      String   @default("system")
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  receitas Receita[]
+  despesas Despesa[]
+  cartoesCredito CartaoCredito[]
+
+  @@unique([usuarioId, nome])
+  @@index([usuarioId, criadoEm])
+}
 model PagamentoPremium {
   id                         String          @id @default(uuid())
   usuarioId                  String
@@ -54,6 +74,7 @@ model Receita {
   valor     Decimal  @db.Decimal(10, 2)
   data      DateTime
   fixa      Boolean  @default(false)
+  recorrenciaFim DateTime?
   numeroParcelas Int?
   parcelaAtual   Int?
   parcelamentoId String?
@@ -62,8 +83,26 @@ model Receita {
   usuarioId String
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
+  perfilFinanceiroId String?
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
+
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+
+  excecoesRecorrencia ReceitaExcecaoRecorrencia[]
+}
+
+model ReceitaExcecaoRecorrencia {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  receitaId     String
+  receita       Receita  @relation(fields: [receitaId], references: [id], onDelete: Cascade)
+  mesReferencia DateTime
+  criadoEm      DateTime @default(now())
+
+  @@unique([receitaId, usuarioId, mesReferencia])
+  @@index([usuarioId, mesReferencia])
 }
 
 model Despesa {
@@ -79,6 +118,7 @@ model Despesa {
   dataPagamento  DateTime?
   paga           Boolean   @default(false)
   fixa           Boolean   @default(false)
+  recorrenciaFim DateTime?
   numeroParcelas Int?
   parcelaAtual   Int?
   parcelamentoId String?
@@ -86,6 +126,9 @@ model Despesa {
 
   usuarioId String
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  perfilFinanceiroId String?
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
 
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
@@ -114,9 +157,13 @@ model CartaoCredito {
   usuarioId String
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
+  perfilFinanceiroId String?
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
+
   despesas Despesa[]
 
-  @@unique([usuarioId, nome])
+  @@unique([usuarioId, nome, perfilFinanceiroId])
+  @@index([usuarioId, perfilFinanceiroId])
 }
 
 
@@ -125,6 +172,7 @@ model Sugestao {
   tipo      SugestaoTipo
   titulo    String
   mensagem  String
+  status    String       @default("ABERTO")
   criadoEm  DateTime     @default(now())
 
   usuarioId String

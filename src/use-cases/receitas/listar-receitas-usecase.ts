@@ -3,34 +3,41 @@ import { criarIntervaloDoMes, formatarMesReceita } from "./receita-mes";
 
 interface ListarReceitasUseCaseRequest {
   usuarioId: string;
+  perfilFinanceiroId?: string | null;
   mes?: string;
 }
 
 export class ListarReceitasUseCase {
   constructor(private receitaRepository: ReceitaRepositoryInterface) {}
 
-  async execute({ usuarioId, mes }: ListarReceitasUseCaseRequest) {
+  async execute({ usuarioId, perfilFinanceiroId, mes }: ListarReceitasUseCaseRequest) {
     // Quando o mes vem na query, lista somente receitas daquele periodo.
     const filtroMes = mes ? criarIntervaloDoMes(mes) : null;
 
     const receitas = await this.receitaRepository.listByUsuario({
       usuarioId,
+      perfilFinanceiroId,
       dataInicio: filtroMes?.inicio,
       dataFim: filtroMes?.fim,
     });
 
-    const itens = receitas.map((receita) => ({
-      id: receita.id,
-      nome: receita.descricao,
-      valor: Number(receita.valor),
-      mes: formatarMesReceita(receita.data),
-      data: receita.data,
-      fixa: receita.fixa,
-      numeroParcelas: receita.numeroParcelas,
-      parcelaAtual: receita.parcelaAtual,
-      parcelamentoId: receita.parcelamentoId,
-      criadoEm: receita.criadoEm,
-    }));
+    const itens = receitas.map((receita) => {
+      const mesDaOcorrencia = mes && receita.fixa ? mes : formatarMesReceita(receita.data);
+      const dataDaOcorrencia = mes && receita.fixa ? filtroMes!.inicio : receita.data;
+
+      return {
+        id: receita.id,
+        nome: receita.descricao,
+        valor: Number(receita.valor),
+        mes: mesDaOcorrencia,
+        data: dataDaOcorrencia,
+        fixa: receita.fixa,
+        numeroParcelas: receita.numeroParcelas,
+        parcelaAtual: receita.parcelaAtual,
+        parcelamentoId: receita.parcelamentoId,
+        criadoEm: receita.criadoEm,
+      };
+    });
 
     return {
       receitas: itens,
