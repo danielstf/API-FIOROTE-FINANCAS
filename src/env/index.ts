@@ -13,7 +13,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   RESEND_API_KEY: z.string(),
   RESEND_FROM_EMAIL: z.string().email(),
-  FRONTEND_URL: urlWithoutTrailingSlash.default("http://localhost:5173"),
+  FRONTEND_URL: urlWithoutTrailingSlash.default(
+    "https://front-fiorote-financas-production.up.railway.app",
+  ),
   APP_URL: urlWithoutTrailingSlash.default("http://localhost:3333"),
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),

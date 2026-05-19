@@ -34,6 +34,20 @@ model Usuario {
   despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
   sugestoes Sugestao[]
   perfisFinanceiros PerfilFinanceiro[]
+  sessoes SessaoUsuario[]
+}
+
+model SessaoUsuario {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadaEm   DateTime @default(now())
+  atualizadaEm DateTime @updatedAt
+  expiraEm   DateTime
+
+  @@index([usuarioId])
+  @@index([atualizadaEm])
+  @@index([expiraEm])
 }
 
 
@@ -84,7 +98,7 @@ model Receita {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   perfilFinanceiroId String?
-  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
 
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
@@ -128,7 +142,7 @@ model Despesa {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   perfilFinanceiroId String?
-  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
 
   categoriaId String?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
@@ -158,7 +172,7 @@ model CartaoCredito {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   perfilFinanceiroId String?
-  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: SetNull)
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
 
   despesas Despesa[]
 

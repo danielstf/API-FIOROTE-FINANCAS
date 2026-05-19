@@ -8,6 +8,6 @@ export class ExcluirPerfilUseCase {
     const atual = await this.perfilRepository.findByIdAndUsuario(perfilId, usuarioId);
     if (!atual) throw new PerfilNaoEncontradoError();
 
-    await this.perfilRepository.delete(perfilId);
+    await this.perfilRepository.delete(perfilId, usuarioId);
   }
 }

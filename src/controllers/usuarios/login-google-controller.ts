@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeLoginGoogleFactory } from "../../factory/usuarios-factory/login-google-factory";
+import { prisma } from "../../lib/prisma";
 import {
   GoogleLoginNaoConfiguradoError,
   GoogleTokenInvalidoError,
@@ -20,10 +21,17 @@ export async function loginGoogleController(
   try {
     const loginGoogle = makeLoginGoogleFactory();
     const { usuario } = await loginGoogle.execute({ idToken });
+    const sessao = await prisma.sessaoUsuario.create({
+      data: {
+        usuarioId: usuario.id,
+        expiraEm: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      },
+    });
 
     const token = await reply.jwtSign({
       sub: usuario.id,
       role: usuario.role,
+      sid: sessao.id,
     });
 
     return reply.status(200).send({

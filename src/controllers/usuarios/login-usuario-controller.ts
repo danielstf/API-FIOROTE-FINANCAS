@@ -2,6 +2,7 @@ import { makeLoginUsuarioFactory } from "../../factory/usuarios-factory/login-us
 import { InvalidCredentialsError } from "../../use-cases/usuarios/login-usuario-usecase";
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
+import { prisma } from "../../lib/prisma";
 
 export async function loginUsuarioController(
   request: FastifyRequest,
@@ -17,10 +18,17 @@ export async function loginUsuarioController(
   try {
     const loginUsuario = makeLoginUsuarioFactory();
     const { usuario } = await loginUsuario.execute({ email, senha });
+    const sessao = await prisma.sessaoUsuario.create({
+      data: {
+        usuarioId: usuario.id,
+        expiraEm: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      },
+    });
 
     const token = await reply.jwtSign({
       sub: usuario.id,
       role: usuario.role,
+      sid: sessao.id,
     });
 
     return reply.status(200).send({

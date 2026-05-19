@@ -38,7 +38,32 @@ export class PerfilRepository {
     return prisma.perfilFinanceiro.update({ where: { id: perfilId }, data });
   }
 
-  async delete(perfilId: string) {
-    await prisma.perfilFinanceiro.delete({ where: { id: perfilId } });
+  async delete(perfilId: string, usuarioId: string) {
+    await prisma.$transaction(async (tx) => {
+      await tx.despesa.deleteMany({
+        where: {
+          perfilFinanceiroId: perfilId,
+          usuarioId,
+        },
+      });
+
+      await tx.receita.deleteMany({
+        where: {
+          perfilFinanceiroId: perfilId,
+          usuarioId,
+        },
+      });
+
+      await tx.cartaoCredito.deleteMany({
+        where: {
+          perfilFinanceiroId: perfilId,
+          usuarioId,
+        },
+      });
+
+      await tx.perfilFinanceiro.delete({
+        where: { id: perfilId },
+      });
+    });
   }
 }
