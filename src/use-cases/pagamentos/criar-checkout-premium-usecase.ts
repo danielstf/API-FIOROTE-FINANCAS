@@ -11,6 +11,8 @@ interface CriarCheckoutPremiumUseCaseRequest {
   appUrl: string;
   frontendUrl: string;
   premiumPrice: number;
+  mercadoPagoAccessToken: string;
+  mercadoPagoPayerEmail?: string;
 }
 
 export class UsuarioNaoEncontradoError extends Error {
@@ -25,12 +27,22 @@ export class UsuarioJaPremiumError extends Error {
   }
 }
 
+export class MercadoPagoPayerIncompativelError extends Error {
+  constructor() {
+    super(
+      "Credenciais de producao do Mercado Pago nao podem criar assinatura para usuario de teste. Use um e-mail real ou credenciais de uma conta teste compativel.",
+    );
+  }
+}
+
 export class CriarCheckoutPremiumUseCase {
   async execute({
     usuarioId,
     appUrl,
     frontendUrl,
     premiumPrice,
+    mercadoPagoAccessToken,
+    mercadoPagoPayerEmail,
   }: CriarCheckoutPremiumUseCaseRequest) {
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
@@ -66,6 +78,12 @@ export class CriarCheckoutPremiumUseCase {
       };
     }
 
+    const payerEmail = mercadoPagoPayerEmail ?? usuario.email;
+
+    if (mercadoPagoAccessToken.startsWith("APP_USR-") && isMercadoPagoTestUser(payerEmail)) {
+      throw new MercadoPagoPayerIncompativelError();
+    }
+
     const pagamento = await prisma.pagamentoPremium.create({
       data: {
         usuarioId,
@@ -78,7 +96,7 @@ export class CriarCheckoutPremiumUseCase {
     const preapproval = await mercadoPagoPreapproval.create({
       reason: "Plano Premium Fiorote Financas",
       external_reference: pagamento.externalReference,
-      payer_email: usuario.email,
+      payer_email: payerEmail,
       back_url: `${frontendUrl}/premium/sucesso`,
       notification_url: `${appUrl}/webhooks/mercado-pago`,
       status: "pending",
@@ -108,4 +126,8 @@ export class CriarCheckoutPremiumUseCase {
       sandboxCheckoutUrl: preapproval.sandbox_init_point,
     };
   }
+}
+
+function isMercadoPagoTestUser(email: string) {
+  return email.toLowerCase().endsWith("@testuser.com");
 }

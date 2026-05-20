@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { env } from "../../env";
 import {
   CriarCheckoutPremiumUseCase,
+  MercadoPagoPayerIncompativelError,
   UsuarioJaPremiumError,
   UsuarioNaoEncontradoError,
 } from "../../use-cases/pagamentos/criar-checkout-premium-usecase";
@@ -20,6 +21,8 @@ export async function criarCheckoutPremiumController(
       appUrl: env.APP_URL,
       frontendUrl: env.FRONTEND_URL,
       premiumPrice: env.PREMIUM_PRICE,
+      mercadoPagoAccessToken: env.MERCADO_PAGO_ACCESS_TOKEN,
+      mercadoPagoPayerEmail: env.MERCADO_PAGO_PAYER_EMAIL,
     });
 
     return reply.status(201).send(checkout);
@@ -32,6 +35,10 @@ export async function criarCheckoutPremiumController(
     // Evita gerar nova cobranca para quem ja possui premium ativo.
     if (error instanceof UsuarioJaPremiumError) {
       return reply.status(409).send({ message: error.message });
+    }
+
+    if (error instanceof MercadoPagoPayerIncompativelError) {
+      return reply.status(400).send({ message: error.message });
     }
 
     // Falhas nao previstas nao expõem detalhes internos ao cliente.
