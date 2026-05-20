@@ -2,20 +2,40 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeListarReceitasFactory } from "../../factory/receitas-factory/listar-receitas-factory";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
+import { bloquearRecursoPremiumSeNecessario } from "../../lib/premium-access";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+
+const booleanQuery = z
+  .union([z.boolean(), z.enum(["true", "false"])])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return undefined;
+    return value === true || value === "true";
+  });
 
 const listarReceitasQuerySchema = z.object({
   // Filtro opcional no formato YYYY-MM, por exemplo: 2026-05.
   mes: z.string().trim().optional(),
+  relatorio: booleanQuery,
 });
 
 export async function listarReceitasController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { mes } = listarReceitasQuerySchema.parse(request.query);
+  const { mes, relatorio } = listarReceitasQuerySchema.parse(request.query);
 
   try {
+    if (
+      await bloquearRecursoPremiumSeNecessario(
+        request.user.sub,
+        relatorio,
+        reply,
+      )
+    ) {
+      return;
+    }
+
     const listarReceitas = makeListarReceitasFactory();
 
     const resultado = await listarReceitas.execute({

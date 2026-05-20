@@ -1,10 +1,11 @@
 import { PagamentoStatus } from "@prisma/client";
-import { mercadoPagoPayment } from "../../lib/mercadopago";
+import { mercadoPagoPayment, mercadoPagoPreapproval } from "../../lib/mercadopago";
 import { prisma } from "../../lib/prisma";
 import { calcularPremiumExpiraEm } from "./premium-validade";
 
 interface ProcessarWebhookMercadoPagoUseCaseRequest {
-  paymentId: string;
+  resourceId: string;
+  resourceType?: "payment" | "preapproval";
 }
 
 export function mapMercadoPagoStatus(status: string | undefined) {
@@ -28,6 +29,13 @@ type MercadoPagoPaymentData = {
   id?: string | number;
   status?: string;
   external_reference?: string;
+};
+
+type MercadoPagoPreapprovalData = {
+  id?: string;
+  status?: string;
+  external_reference?: string;
+  next_payment_date?: string;
 };
 
 export async function aplicarPagamentoMercadoPago(payment: MercadoPagoPaymentData) {
@@ -69,10 +77,82 @@ export async function aplicarPagamentoMercadoPago(payment: MercadoPagoPaymentDat
   return pagamentoAtualizado;
 }
 
+export async function aplicarAssinaturaMercadoPago(
+  preapproval: MercadoPagoPreapprovalData,
+) {
+  const pagamento = await prisma.pagamentoPremium.findFirst({
+    where: {
+      OR: [
+        { mercadoPagoPreapprovalId: preapproval.id },
+        { externalReference: preapproval.external_reference ?? "" },
+      ],
+    },
+  });
+
+  if (!pagamento) {
+    return null;
+  }
+
+  const assinaturaStatus = preapproval.status;
+  const status =
+    assinaturaStatus === "authorized"
+      ? PagamentoStatus.APPROVED
+      : assinaturaStatus === "canceled" || assinaturaStatus === "cancelled"
+        ? PagamentoStatus.CANCELLED
+        : assinaturaStatus === "paused"
+          ? PagamentoStatus.CANCELLED
+          : PagamentoStatus.PENDING;
+
+  const pagamentoAtualizado = await prisma.pagamentoPremium.update({
+    where: { id: pagamento.id },
+    data: {
+      status,
+      assinaturaStatus,
+      mercadoPagoPreapprovalId: preapproval.id ?? pagamento.mercadoPagoPreapprovalId,
+      canceladoEm:
+        status === PagamentoStatus.CANCELLED
+          ? (pagamento.canceladoEm ?? new Date())
+          : pagamento.canceladoEm,
+    },
+  });
+
+  if (status === PagamentoStatus.APPROVED) {
+    await prisma.usuario.update({
+      where: { id: pagamento.usuarioId },
+      data: {
+        plano: "PREMIUM",
+        exibirAnuncios: false,
+        premiumExpiraEm: preapproval.next_payment_date
+          ? new Date(preapproval.next_payment_date)
+          : calcularPremiumExpiraEm(),
+      },
+    });
+  }
+
+  if (status === PagamentoStatus.CANCELLED) {
+    await prisma.usuario.update({
+      where: { id: pagamento.usuarioId },
+      data: {
+        plano: "FREE",
+        exibirAnuncios: true,
+        premiumExpiraEm: null,
+      },
+    });
+  }
+
+  return pagamentoAtualizado;
+}
+
 export class ProcessarWebhookMercadoPagoUseCase {
-  async execute({ paymentId }: ProcessarWebhookMercadoPagoUseCaseRequest) {
+  async execute({ resourceId, resourceType = "payment" }: ProcessarWebhookMercadoPagoUseCaseRequest) {
+    if (resourceType === "preapproval") {
+      const preapproval = await mercadoPagoPreapproval.get(resourceId);
+      await aplicarAssinaturaMercadoPago(preapproval);
+      return;
+    }
+
     // Busca os dados oficiais do pagamento diretamente na API do Mercado Pago.
-    const payment = await mercadoPagoPayment.get({ id: paymentId });
+    const payment = await mercadoPagoPayment.get({ id: resourceId });
     await aplicarPagamentoMercadoPago(payment);
   }
 }

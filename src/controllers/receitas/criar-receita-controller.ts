@@ -11,7 +11,12 @@ const criarReceitaBodySchema = z.object({
   valor: z.coerce.number().positive("O valor da receita deve ser maior que zero"),
   mes: z.string().trim().min(1, "O mes da receita e obrigatorio"),
   fixa: z.boolean().optional().default(false),
-  numeroParcelas: z.coerce.number().int().positive().optional(),
+  numeroParcelas: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(120, "O parcelamento deve ter no maximo 120 parcelas")
+    .optional(),
 });
 
 export async function criarReceitaController(

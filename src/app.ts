@@ -1,7 +1,9 @@
 import fastifyJwt from "@fastify/jwt";
 import fastifyCors from "@fastify/cors";
+import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
 import { fastify } from "fastify";
+import { ZodError } from "zod";
 import { env } from "./env";
 import { usuariosRoutes } from "./controllers/usuarios/routes";
 import { pagamentosRoutes } from "./controllers/pagamentos/routes";
@@ -16,7 +18,7 @@ import { adminRoutes } from "./controllers/admin/routes";
 export const app = fastify();
 
 const allowedOrigins = new Set([
-  "http://localhost:8081",
+  "http://localhost:5176",
   "http://localhost:8083",
   "http://localhost:19006",
   "http://localhost:5176",
@@ -60,6 +62,7 @@ function isDevelopmentOrigin(origin: string) {
   }
 }
 
+app.register(fastifyHelmet);
 app.register(fastifyRateLimit, { global: false });
 
 app.register(fastifyCors, {
@@ -84,6 +87,21 @@ app.get("/", async () => {
 
 app.get("/health", async () => {
   return { status: "ok" };
+});
+
+app.setErrorHandler((error, _request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      message: "Dados invalidos",
+      issues: error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  console.error("Erro nao tratado:", error);
+  return reply.status(500).send({ message: "Erro interno do servidor" });
 });
 
 app.register(fastifyJwt, {

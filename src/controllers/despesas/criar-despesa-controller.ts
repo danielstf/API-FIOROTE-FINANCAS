@@ -33,7 +33,12 @@ const criarDespesaBodySchema = z.object({
   mes: z.string().trim().optional().nullable(),
   dataVencimento: z.string().trim().optional().nullable(),
   fixa: z.boolean().optional().default(false),
-  numeroParcelas: z.coerce.number().int().positive().optional(),
+  numeroParcelas: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(120, "O parcelamento deve ter no maximo 120 parcelas")
+    .optional(),
 });
 
 export async function criarDespesaController(

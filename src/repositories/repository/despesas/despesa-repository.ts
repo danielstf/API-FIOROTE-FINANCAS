@@ -59,7 +59,7 @@ export class DespesaRepository implements DespesaRepositoryInterface {
 
   // Cria despesas em lote, uma por mes quando houver parcelamento.
   async createMany(data: CriarDespesaData[]): Promise<Despesa[]> {
-    const despesas = await Promise.all(
+    const despesas = await prisma.$transaction(
       data.map((despesa) =>
         prisma.despesa.create({
           data: despesa,

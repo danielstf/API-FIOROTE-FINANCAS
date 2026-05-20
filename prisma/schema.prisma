@@ -73,13 +73,21 @@ model PagamentoPremium {
   usuarioId                  String
   usuario                    Usuario         @relation(fields: [usuarioId], references: [id])
   mercadoPagoPreferenceId    String?         @unique
+  mercadoPagoPreapprovalId   String?         @unique
   mercadoPagoPaymentId       String?         @unique
   externalReference          String          @unique
+  tipo                       PagamentoTipo   @default(CHECKOUT)
   status                     PagamentoStatus @default(PENDING)
+  assinaturaStatus           String?
   valor                      Decimal         @db.Decimal(10, 2)
   checkoutUrl                String?
+  canceladoEm                DateTime?
   criadoEm                   DateTime        @default(now())
   atualizadoEm               DateTime        @updatedAt
+
+  @@index([usuarioId, criadoEm])
+  @@index([status, criadoEm])
+  @@index([tipo, status])
 }
 
 model Receita {
@@ -104,6 +112,10 @@ model Receita {
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
 
   excecoesRecorrencia ReceitaExcecaoRecorrencia[]
+
+  @@index([usuarioId, perfilFinanceiroId, data])
+  @@index([usuarioId, perfilFinanceiroId, fixa, data])
+  @@index([parcelamentoId, usuarioId])
 }
 
 model ReceitaExcecaoRecorrencia {
@@ -148,6 +160,12 @@ model Despesa {
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
 
   excecoesRecorrencia DespesaExcecaoRecorrencia[]
+
+  @@index([usuarioId, perfilFinanceiroId, mesReferencia])
+  @@index([usuarioId, perfilFinanceiroId, fixa, mesReferencia])
+  @@index([usuarioId, perfilFinanceiroId, paga, dataVencimento])
+  @@index([cartaoCreditoId, usuarioId])
+  @@index([parcelamentoId, usuarioId])
 }
 
 model DespesaExcecaoRecorrencia {
@@ -229,6 +247,11 @@ enum PagamentoStatus {
   REJECTED
   CANCELLED
   REFUNDED
+}
+
+enum PagamentoTipo {
+  CHECKOUT
+  ASSINATURA
 }
 
 enum FormaPagamentoDespesa {

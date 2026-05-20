@@ -31,17 +31,26 @@ export async function webhookMercadoPagoController(
   const query = webhookQuerySchema.parse(request.query);
   const body = webhookBodySchema.parse(request.body ?? {});
 
-  // Prioriza os campos mais comuns usados pelo Mercado Pago para identificar o pagamento.
-  const paymentId = query["data.id"] ?? query.id ?? body.data?.id?.toString();
+  // Prioriza os campos mais comuns usados pelo Mercado Pago para identificar o recurso.
+  const resourceId = query["data.id"] ?? query.id ?? body.data?.id?.toString();
+  const topic = query.topic ?? query.type ?? body.type ?? body.action ?? "";
+  const resourceType = topic.toLowerCase().includes("preapproval")
+    ? "preapproval"
+    : "payment";
 
-  if (!paymentId) {
+  if (!resourceId) {
     return reply.status(400).send({ message: "Pagamento nao informado" });
   }
 
   // Quando configurado, valida a assinatura para garantir que o webhook veio do Mercado Pago.
+  if (!env.MERCADO_PAGO_WEBHOOK_SECRET && env.NODE_ENV === "production") {
+    console.error("MERCADO_PAGO_WEBHOOK_SECRET nao configurado em producao");
+    return reply.status(500).send({ message: "Webhook nao configurado" });
+  }
+
   if (env.MERCADO_PAGO_WEBHOOK_SECRET) {
     const isValidSignature = verifyMercadoPagoSignature({
-      dataId: query["data.id"] ?? paymentId,
+      dataId: query["data.id"] ?? resourceId,
       requestId: request.headers["x-request-id"]?.toString(),
       signature: request.headers["x-signature"]?.toString(),
       secret: env.MERCADO_PAGO_WEBHOOK_SECRET,
@@ -55,9 +64,9 @@ export async function webhookMercadoPagoController(
     console.warn("MERCADO_PAGO_WEBHOOK_SECRET nao configurado");
   }
 
-  // Consulta o pagamento no Mercado Pago e aplica o resultado no banco local.
+  // Consulta o recurso no Mercado Pago e aplica o resultado no banco local.
   const processarWebhookMercadoPago = new ProcessarWebhookMercadoPagoUseCase();
-  await processarWebhookMercadoPago.execute({ paymentId });
+  await processarWebhookMercadoPago.execute({ resourceId, resourceType });
 
   return reply.status(200).send({ received: true });
 }

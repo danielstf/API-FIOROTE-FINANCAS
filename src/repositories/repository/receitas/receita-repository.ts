@@ -45,7 +45,7 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
 
   // Cria receitas em lote, uma por mes quando houver parcelamento.
   async createMany(data: CriarReceitaData[]): Promise<Receita[]> {
-    const receitas = await Promise.all(
+    const receitas = await prisma.$transaction(
       data.map((receita) =>
         prisma.receita.create({
           data: receita,

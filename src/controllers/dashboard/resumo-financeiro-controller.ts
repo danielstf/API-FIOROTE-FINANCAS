@@ -2,21 +2,41 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeResumoFinanceiroFactory } from "../../factory/dashboard-factory/resumo-financeiro-factory";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
+import { bloquearRecursoPremiumSeNecessario } from "../../lib/premium-access";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+
+const booleanQuery = z
+  .union([z.boolean(), z.enum(["true", "false"])])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return undefined;
+    return value === true || value === "true";
+  });
 
 const resumoFinanceiroQuerySchema = z.object({
   // Mes base do dashboard no formato YYYY-MM.
   mes: z.string().trim().min(1, "O mes e obrigatorio"),
   meses: z.coerce.number().int().positive().optional().default(6),
+  relatorio: booleanQuery,
 });
 
 export async function resumoFinanceiroController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { mes, meses } = resumoFinanceiroQuerySchema.parse(request.query);
+  const { mes, meses, relatorio } = resumoFinanceiroQuerySchema.parse(request.query);
 
   try {
+    if (
+      await bloquearRecursoPremiumSeNecessario(
+        request.user.sub,
+        relatorio,
+        reply,
+      )
+    ) {
+      return;
+    }
+
     const resumoFinanceiro = makeResumoFinanceiroFactory();
 
     const resultado = await resumoFinanceiro.execute({

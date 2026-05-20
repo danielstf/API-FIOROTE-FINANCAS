@@ -3,6 +3,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeListarDespesasFactory } from "../../factory/despesas-factory/listar-despesas-factory";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
+import { bloquearRecursoPremiumSeNecessario } from "../../lib/premium-access";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
 
 const booleanQuery = z
@@ -33,6 +34,7 @@ const listarDespesasQuerySchema = z.object({
   somenteCartao: booleanQuery,
   somenteVencidas: booleanQuery,
   paga: booleanQuery,
+  relatorio: booleanQuery,
 });
 
 export async function listarDespesasController(
@@ -46,10 +48,21 @@ export async function listarDespesasController(
     somenteCartao,
     somenteVencidas,
     paga,
+    relatorio,
   } =
     listarDespesasQuerySchema.parse(request.query);
 
   try {
+    if (
+      await bloquearRecursoPremiumSeNecessario(
+        request.user.sub,
+        relatorio,
+        reply,
+      )
+    ) {
+      return;
+    }
+
     const listarDespesas = makeListarDespesasFactory();
 
     const resultado = await listarDespesas.execute({

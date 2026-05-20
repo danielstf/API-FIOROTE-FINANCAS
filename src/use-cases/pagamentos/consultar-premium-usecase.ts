@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
-import { mercadoPagoPayment } from "../../lib/mercadopago";
+import { mercadoPagoPayment, mercadoPagoPreapproval } from "../../lib/mercadopago";
 import { aplicarPagamentoMercadoPago } from "./processar-webhook-mercado-pago-usecase";
+import { aplicarAssinaturaMercadoPago } from "./processar-webhook-mercado-pago-usecase";
 import {
   atualizarPremiumExpirado,
   usuarioTemPremiumAtivo,
@@ -36,6 +37,16 @@ export class ConsultarPremiumUseCase {
 
     // Antes de responder, garante que premium vencido volte para FREE.
     const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+    const premiumAtivo = usuarioTemPremiumAtivo(usuarioAtualizado);
+
+    if (premiumAtivo && usuarioAtualizado.exibirAnuncios) {
+      usuarioAtualizado.exibirAnuncios = false;
+
+      await prisma.usuario.update({
+        where: { id: usuarioId },
+        data: { exibirAnuncios: false },
+      });
+    }
 
     const ultimoPagamento = await prisma.pagamentoPremium.findFirst({
       where: { usuarioId },
@@ -45,6 +56,10 @@ export class ConsultarPremiumUseCase {
         status: true,
         valor: true,
         checkoutUrl: true,
+        tipo: true,
+        assinaturaStatus: true,
+        mercadoPagoPreapprovalId: true,
+        canceladoEm: true,
         criadoEm: true,
         atualizadoEm: true,
       },
@@ -52,7 +67,7 @@ export class ConsultarPremiumUseCase {
 
     return {
       plano: usuarioAtualizado.plano,
-      premium: usuarioTemPremiumAtivo(usuarioAtualizado),
+      premium: premiumAtivo,
       exibirAnuncios: usuarioAtualizado.exibirAnuncios,
       premiumExpiraEm: usuarioAtualizado.premiumExpiraEm,
       premiumDiasRestantes: calcularDiasRestantes(usuarioAtualizado.premiumExpiraEm),
@@ -60,6 +75,8 @@ export class ConsultarPremiumUseCase {
         ? {
             ...ultimoPagamento,
             valor: Number(ultimoPagamento.valor),
+            assinaturaId: ultimoPagamento.mercadoPagoPreapprovalId,
+            mercadoPagoPreapprovalId: undefined,
           }
         : null,
     };
@@ -87,6 +104,14 @@ async function sincronizarPagamentosPendentes(usuarioId: string) {
   await Promise.all(
     pagamentosPendentes.map(async (pagamento) => {
       try {
+        if (pagamento.tipo === "ASSINATURA" && pagamento.mercadoPagoPreapprovalId) {
+          const preapproval = await mercadoPagoPreapproval.get(
+            pagamento.mercadoPagoPreapprovalId,
+          );
+          await aplicarAssinaturaMercadoPago(preapproval);
+          return;
+        }
+
         const resultado = await mercadoPagoPayment.search({
           options: {
             external_reference: pagamento.externalReference,
