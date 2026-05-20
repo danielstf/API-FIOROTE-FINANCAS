@@ -20,7 +20,9 @@ const envSchema = z.object({
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
   MERCADO_PAGO_PAYER_EMAIL: z.string().email().optional(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),
-  PREMIUM_PRICE: z.coerce.number().positive().default(19.9),
+  PREMIUM_PRICE: z.coerce.number().positive().default(8),
+  PREMIUM_MONTHLY_PRICE: z.coerce.number().positive().default(8),
+  PREMIUM_RECURRING_PRICE: z.coerce.number().positive().default(5),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
 });
 

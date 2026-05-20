@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
+import z from "zod";
 import { env } from "../../env";
 import {
   CriarCheckoutPremiumUseCase,
@@ -7,11 +8,17 @@ import {
   UsuarioNaoEncontradoError,
 } from "../../use-cases/pagamentos/criar-checkout-premium-usecase";
 
+const criarCheckoutPremiumBodySchema = z.object({
+  tipo: z.enum(["MENSAL", "RECORRENTE"]).optional().default("RECORRENTE"),
+});
+
 export async function criarCheckoutPremiumController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
   try {
+    const { tipo } = criarCheckoutPremiumBodySchema.parse(request.body ?? {});
+
     // Caso de uso que cria a preferencia de pagamento premium no Mercado Pago.
     const criarCheckoutPremium = new CriarCheckoutPremiumUseCase();
 
@@ -20,7 +27,9 @@ export async function criarCheckoutPremiumController(
       usuarioId: request.user.sub,
       appUrl: env.APP_URL,
       frontendUrl: env.FRONTEND_URL,
-      premiumPrice: env.PREMIUM_PRICE,
+      tipo,
+      premiumMonthlyPrice: env.PREMIUM_MONTHLY_PRICE,
+      premiumRecurringPrice: env.PREMIUM_RECURRING_PRICE,
       mercadoPagoAccessToken: env.MERCADO_PAGO_ACCESS_TOKEN,
       mercadoPagoPayerEmail: env.MERCADO_PAGO_PAYER_EMAIL,
     });

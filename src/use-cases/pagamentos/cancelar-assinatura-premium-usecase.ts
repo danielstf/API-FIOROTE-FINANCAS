@@ -72,9 +72,9 @@ export class CancelarAssinaturaPremiumUseCase {
     const usuario = await prisma.usuario.update({
       where: { id: usuarioId },
       data: {
-        plano: "FREE",
-        exibirAnuncios: true,
-        premiumExpiraEm: null,
+        plano: "PREMIUM",
+        exibirAnuncios: false,
+        premiumExpiraEm: usuarioAtual.premiumExpiraEm,
       },
       select: {
         id: true,

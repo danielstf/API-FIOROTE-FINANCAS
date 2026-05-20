@@ -129,17 +129,6 @@ export async function aplicarAssinaturaMercadoPago(
     });
   }
 
-  if (status === PagamentoStatus.CANCELLED) {
-    await prisma.usuario.update({
-      where: { id: pagamento.usuarioId },
-      data: {
-        plano: "FREE",
-        exibirAnuncios: true,
-        premiumExpiraEm: null,
-      },
-    });
-  }
-
   return pagamentoAtualizado;
 }
 

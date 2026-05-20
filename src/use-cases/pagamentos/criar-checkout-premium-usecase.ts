@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../../lib/prisma";
-import { mercadoPagoPreapproval } from "../../lib/mercadopago";
+import { mercadoPagoPreapproval, mercadoPagoPreference } from "../../lib/mercadopago";
 import {
   atualizarPremiumExpirado,
   usuarioTemPremiumAtivo,
@@ -10,7 +10,9 @@ interface CriarCheckoutPremiumUseCaseRequest {
   usuarioId: string;
   appUrl: string;
   frontendUrl: string;
-  premiumPrice: number;
+  tipo: "MENSAL" | "RECORRENTE";
+  premiumMonthlyPrice: number;
+  premiumRecurringPrice: number;
   mercadoPagoAccessToken: string;
   mercadoPagoPayerEmail?: string;
 }
@@ -40,7 +42,9 @@ export class CriarCheckoutPremiumUseCase {
     usuarioId,
     appUrl,
     frontendUrl,
-    premiumPrice,
+    tipo,
+    premiumMonthlyPrice,
+    premiumRecurringPrice,
     mercadoPagoAccessToken,
     mercadoPagoPayerEmail,
   }: CriarCheckoutPremiumUseCaseRequest) {
@@ -59,10 +63,14 @@ export class CriarCheckoutPremiumUseCase {
       throw new UsuarioJaPremiumError();
     }
 
+    const pagamentoTipo = tipo === "RECORRENTE" ? "ASSINATURA" : "CHECKOUT";
+    const premiumPrice =
+      tipo === "RECORRENTE" ? premiumRecurringPrice : premiumMonthlyPrice;
+
     const pagamentoPendente = await prisma.pagamentoPremium.findFirst({
       where: {
         usuarioId,
-        tipo: "ASSINATURA",
+        tipo: pagamentoTipo,
         status: "PENDING",
         checkoutUrl: { not: null },
       },
@@ -73,6 +81,7 @@ export class CriarCheckoutPremiumUseCase {
       return {
         pagamentoId: pagamentoPendente.id,
         preapprovalId: pagamentoPendente.mercadoPagoPreapprovalId,
+        preferenceId: pagamentoPendente.mercadoPagoPreferenceId,
         checkoutUrl: pagamentoPendente.checkoutUrl,
         sandboxCheckoutUrl: null,
       };
@@ -88,10 +97,57 @@ export class CriarCheckoutPremiumUseCase {
       data: {
         usuarioId,
         externalReference: randomUUID(),
-        tipo: "ASSINATURA",
+        tipo: pagamentoTipo,
         valor: premiumPrice,
       },
     });
+
+    if (tipo === "MENSAL") {
+      const preference = await mercadoPagoPreference.create({
+        body: {
+          external_reference: pagamento.externalReference,
+          notification_url: `${appUrl}/webhooks/mercado-pago`,
+          back_urls: {
+            success: `${frontendUrl}/premium/sucesso`,
+            pending: `${frontendUrl}/premium/pendente`,
+            failure: `${frontendUrl}/premium/falha`,
+          },
+          items: [
+            {
+              id: "premium-mensal",
+              title: "Plano Premium Mensal",
+              description: "Acesso mensal avulso ao Premium do Fiorote Financas",
+              quantity: 1,
+              currency_id: "BRL",
+              unit_price: premiumPrice,
+            },
+          ],
+          metadata: {
+            pagamentoId: pagamento.id,
+            usuarioId,
+            tipo: "MENSAL",
+          },
+        },
+      });
+
+      const checkoutUrl = preference.init_point ?? preference.sandbox_init_point;
+
+      await prisma.pagamentoPremium.update({
+        where: { id: pagamento.id },
+        data: {
+          mercadoPagoPreferenceId: preference.id,
+          checkoutUrl,
+        },
+      });
+
+      return {
+        pagamentoId: pagamento.id,
+        preferenceId: preference.id,
+        preapprovalId: null,
+        checkoutUrl,
+        sandboxCheckoutUrl: preference.sandbox_init_point,
+      };
+    }
 
     const preapproval = await mercadoPagoPreapproval.create({
       reason: "Plano Premium Fiorote Financas",
@@ -121,6 +177,7 @@ export class CriarCheckoutPremiumUseCase {
 
     return {
       pagamentoId: pagamento.id,
+      preferenceId: null,
       preapprovalId: preapproval.id,
       checkoutUrl,
       sandboxCheckoutUrl: preapproval.sandbox_init_point,
