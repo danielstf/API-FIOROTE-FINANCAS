@@ -67,25 +67,17 @@ export class CriarCheckoutPremiumUseCase {
     const premiumPrice =
       tipo === "RECORRENTE" ? premiumRecurringPrice : premiumMonthlyPrice;
 
-    const pagamentoPendente = await prisma.pagamentoPremium.findFirst({
+    await prisma.pagamentoPremium.updateMany({
       where: {
         usuarioId,
-        tipo: pagamentoTipo,
         status: "PENDING",
         checkoutUrl: { not: null },
       },
-      orderBy: { criadoEm: "desc" },
+      data: {
+        status: "CANCELLED",
+        canceladoEm: new Date(),
+      },
     });
-
-    if (pagamentoPendente?.checkoutUrl) {
-      return {
-        pagamentoId: pagamentoPendente.id,
-        preapprovalId: pagamentoPendente.mercadoPagoPreapprovalId,
-        preferenceId: pagamentoPendente.mercadoPagoPreferenceId,
-        checkoutUrl: pagamentoPendente.checkoutUrl,
-        sandboxCheckoutUrl: null,
-      };
-    }
 
     const payerEmail = mercadoPagoPayerEmail ?? usuario.email;
 
@@ -142,6 +134,8 @@ export class CriarCheckoutPremiumUseCase {
 
       return {
         pagamentoId: pagamento.id,
+        tipo,
+        valor: premiumPrice,
         preferenceId: preference.id,
         preapprovalId: null,
         checkoutUrl,
@@ -177,6 +171,8 @@ export class CriarCheckoutPremiumUseCase {
 
     return {
       pagamentoId: pagamento.id,
+      tipo,
+      valor: premiumPrice,
       preferenceId: null,
       preapprovalId: preapproval.id,
       checkoutUrl,

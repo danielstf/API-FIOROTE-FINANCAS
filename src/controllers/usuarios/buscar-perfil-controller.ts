@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { UsuarioRepository } from "../../repositories/repository/usuarios/usuario-repository";
+import { atualizarPremiumExpirado } from "../../use-cases/pagamentos/premium-validade";
 
 export async function buscarPerfilController(
   request: FastifyRequest,
@@ -13,15 +14,17 @@ export async function buscarPerfilController(
       return reply.status(404).send({ message: "Usuario nao encontrado" });
     }
 
+    const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+
     return reply.status(200).send({
       usuario: {
-        id: usuario.id,
-        nome: usuario.nome,
-        email: usuario.email,
-        role: usuario.role,
-        plano: usuario.plano,
-        premiumExpiraEm: usuario.premiumExpiraEm,
-        temSenha: Boolean(usuario.senha),
+        id: usuarioAtualizado.id,
+        nome: usuarioAtualizado.nome,
+        email: usuarioAtualizado.email,
+        role: usuarioAtualizado.role,
+        plano: usuarioAtualizado.plano,
+        premiumExpiraEm: usuarioAtualizado.premiumExpiraEm,
+        temSenha: Boolean(usuarioAtualizado.senha),
       },
     });
   } catch (error) {

@@ -1,7 +1,9 @@
 import { prisma } from "../../lib/prisma";
 import { mercadoPagoPayment, mercadoPagoPreapproval } from "../../lib/mercadopago";
-import { aplicarPagamentoMercadoPago } from "./processar-webhook-mercado-pago-usecase";
-import { aplicarAssinaturaMercadoPago } from "./processar-webhook-mercado-pago-usecase";
+import {
+  aplicarAssinaturaMercadoPago,
+  aplicarPagamentoMercadoPago,
+} from "./processar-webhook-mercado-pago-usecase";
 import {
   atualizarPremiumExpirado,
   usuarioTemPremiumAtivo,
