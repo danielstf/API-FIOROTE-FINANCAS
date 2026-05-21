@@ -32,6 +32,15 @@ type MercadoPagoPreapprovalResponse = {
   next_payment_date?: string;
 };
 
+export class MercadoPagoRequestError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly responseBody: string,
+  ) {
+    super(`Mercado Pago retornou ${statusCode}: ${responseBody}`);
+  }
+}
+
 async function mercadoPagoRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -47,7 +56,7 @@ async function mercadoPagoRequest<T>(
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Mercado Pago retornou ${response.status}: ${body}`);
+    throw new MercadoPagoRequestError(response.status, body);
   }
 
   return response.json() as Promise<T>;

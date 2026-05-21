@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { env } from "../../env";
+import { MercadoPagoRequestError } from "../../lib/mercadopago";
 import {
   CriarCheckoutPremiumUseCase,
   MercadoPagoPayerIncompativelError,
@@ -48,6 +49,17 @@ export async function criarCheckoutPremiumController(
 
     if (error instanceof MercadoPagoPayerIncompativelError) {
       return reply.status(400).send({ message: error.message });
+    }
+
+    if (
+      error instanceof MercadoPagoRequestError &&
+      error.statusCode === 400 &&
+      error.responseBody.includes("Both payer and collector must be real or test users")
+    ) {
+      return reply.status(400).send({
+        message:
+          "As credenciais e o usuario do Mercado Pago precisam ser ambos de teste ou ambos reais.",
+      });
     }
 
     // Falhas nao previstas nao expõem detalhes internos ao cliente.
