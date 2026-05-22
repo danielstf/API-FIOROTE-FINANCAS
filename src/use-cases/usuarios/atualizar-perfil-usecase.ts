@@ -30,11 +30,20 @@ export class AtualizarPerfilUseCase {
     }
 
     const usuarioAtualizado = await this.usuarioRepository.update(usuario.id, {
-      nome,
+      nome: formatarNome(nome),
     });
 
     return {
       usuario: usuarioAtualizado,
     };
   }
+}
+
+function formatarNome(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\p{L}+/gu, (word) => {
+      return word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+    });
 }

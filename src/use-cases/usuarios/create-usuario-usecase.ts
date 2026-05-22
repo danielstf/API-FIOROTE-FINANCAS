@@ -32,7 +32,7 @@ export class CreateUsuarioUseCase {
     const usuario = await this.usuarioRepository.create({
       email,
       senha: hashedSenha,
-      nome,
+      nome: formatarNome(nome),
       plano: "PREMIUM",
       exibirAnuncios: false,
       premiumExpiraEm: calcularPremiumExpiraEm(),
@@ -42,4 +42,13 @@ export class CreateUsuarioUseCase {
       usuario,
     };
   }
+}
+
+function formatarNome(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\p{L}+/gu, (word) => {
+      return word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+    });
 }

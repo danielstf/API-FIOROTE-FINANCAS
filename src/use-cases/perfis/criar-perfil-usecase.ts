@@ -1,5 +1,9 @@
 import { PerfilRepository } from "../../repositories/repository/perfis/perfil-repository";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
+import {
+  atualizarPremiumExpirado,
+  usuarioTemPremiumAtivo,
+} from "../pagamentos/premium-validade";
 import { formatarPerfil } from "./perfil-dados";
 import { LimitePerfisError, PlanoPremiumObrigatorioError } from "./perfil-erros";
 
@@ -18,7 +22,10 @@ export class CriarPerfilUseCase {
 
   async execute({ usuarioId, nome, avatar, tema }: Request) {
     const usuario = await this.usuarioRepository.findById(usuarioId);
-    if (!usuario || usuario.plano !== "PREMIUM") throw new PlanoPremiumObrigatorioError();
+    if (!usuario) throw new PlanoPremiumObrigatorioError();
+
+    const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+    if (!usuarioTemPremiumAtivo(usuarioAtualizado)) throw new PlanoPremiumObrigatorioError();
 
     const total = await this.perfilRepository.countByUsuario(usuarioId);
     if (total >= 5) throw new LimitePerfisError();

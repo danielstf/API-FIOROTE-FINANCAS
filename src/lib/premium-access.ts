@@ -5,6 +5,8 @@ import {
   usuarioTemPremiumAtivo,
 } from "../use-cases/pagamentos/premium-validade";
 
+const premiumMessage = "Este recurso está disponível apenas para usuários Premium.";
+
 export async function bloquearRecursoPremiumSeNecessario(
   usuarioId: string,
   recursoPremium: boolean | undefined,
@@ -12,6 +14,14 @@ export async function bloquearRecursoPremiumSeNecessario(
 ) {
   if (!recursoPremium) return false;
 
+  return bloquearUsuarioSemPremium(usuarioId, reply);
+}
+
+export async function bloquearUsuarioSemPremium(
+  usuarioId: string,
+  reply: FastifyReply,
+  message = premiumMessage,
+) {
   const usuario = await prisma.usuario.findUnique({
     where: { id: usuarioId },
     select: {
@@ -30,9 +40,7 @@ export async function bloquearRecursoPremiumSeNecessario(
   const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
 
   if (!usuarioTemPremiumAtivo(usuarioAtualizado)) {
-    reply.status(403).send({
-      message: "Este recurso está disponível apenas para usuários Premium.",
-    });
+    reply.status(403).send({ message });
     return true;
   }
 

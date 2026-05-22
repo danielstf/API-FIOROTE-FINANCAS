@@ -3,6 +3,10 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { CartaoRepositoryInterface } from "../../repositories/interface/cartoes/cartao-repo-interface";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
+import {
+  atualizarPremiumExpirado,
+  usuarioTemPremiumAtivo,
+} from "../pagamentos/premium-validade";
 import { somarMeses } from "../receitas/receita-mes";
 import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despesa-dados";
 
@@ -71,8 +75,12 @@ export class CriarDespesaUseCase {
       throw new UsuarioNaoEncontradoError();
     }
 
-    if (fixa && usuario.plano !== "PREMIUM") {
-      throw new DespesaFixaPremiumObrigatorioError();
+    if (fixa) {
+      const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+
+      if (!usuarioTemPremiumAtivo(usuarioAtualizado)) {
+        throw new DespesaFixaPremiumObrigatorioError();
+      }
     }
 
     let cartaoId: string | null = null;

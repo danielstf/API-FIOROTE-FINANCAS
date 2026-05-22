@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { ReceitaRepositoryInterface } from "../../repositories/interface/receitas/receita-repo-interface";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
+import {
+  atualizarPremiumExpirado,
+  usuarioTemPremiumAtivo,
+} from "../pagamentos/premium-validade";
 import { criarDataDoMes, formatarMesReceita, somarMeses } from "./receita-mes";
 
 interface CriarReceitaUseCaseRequest {
@@ -47,8 +51,12 @@ export class CriarReceitaUseCase {
       throw new UsuarioNaoEncontradoError();
     }
 
-    if (fixa && usuario.plano !== "PREMIUM") {
-      throw new PlanoPremiumObrigatorioError();
+    if (fixa) {
+      const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
+
+      if (!usuarioTemPremiumAtivo(usuarioAtualizado)) {
+        throw new PlanoPremiumObrigatorioError();
+      }
     }
 
     // O mes e salvo como uma data no primeiro dia do mes informado.

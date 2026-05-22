@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "../lib/prisma";
 import { getPerfilFinanceiroId } from "../lib/perfil-financeiro";
+import { bloquearUsuarioSemPremium } from "../lib/premium-access";
 
 export async function JWTVerify(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -31,6 +32,16 @@ export async function JWTVerify(request: FastifyRequest, reply: FastifyReply) {
     const perfilFinanceiroId = getPerfilFinanceiroId(request);
 
     if (perfilFinanceiroId) {
+      if (
+        await bloquearUsuarioSemPremium(
+          request.user.sub,
+          reply,
+          "Perfis financeiros são exclusivos para usuários VIP.",
+        )
+      ) {
+        return;
+      }
+
       const perfil = await prisma.perfilFinanceiro.findFirst({
         where: {
           id: perfilFinanceiroId,
