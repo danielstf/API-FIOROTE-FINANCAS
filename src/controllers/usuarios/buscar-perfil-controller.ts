@@ -11,7 +11,7 @@ export async function buscarPerfilController(
     const usuario = await usuarioRepository.findById(request.user.sub);
 
     if (!usuario) {
-      return reply.status(404).send({ message: "Usuario nao encontrado" });
+      return reply.status(404).send({ message: "Usuário não encontrado." });
     }
 
     const usuarioAtualizado = await atualizarPremiumExpirado(usuario);

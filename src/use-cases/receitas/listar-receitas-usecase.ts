@@ -12,18 +12,19 @@ export class ListarReceitasUseCase {
 
   async execute({ usuarioId, perfilFinanceiroId, mes }: ListarReceitasUseCaseRequest) {
     // Quando o mes vem na query, lista somente receitas daquele periodo.
-    const filtroMes = mes ? criarIntervaloDoMes(mes) : null;
+    const mesConsulta = mes ?? formatarMesReceita(new Date());
+    const filtroMes = criarIntervaloDoMes(mesConsulta);
 
     const receitas = await this.receitaRepository.listByUsuario({
       usuarioId,
       perfilFinanceiroId,
-      dataInicio: filtroMes?.inicio,
-      dataFim: filtroMes?.fim,
+      dataInicio: filtroMes.inicio,
+      dataFim: filtroMes.fim,
     });
 
     const itens = receitas.map((receita) => {
-      const mesDaOcorrencia = mes && receita.fixa ? mes : formatarMesReceita(receita.data);
-      const dataDaOcorrencia = mes && receita.fixa ? filtroMes!.inicio : receita.data;
+      const mesDaOcorrencia = receita.fixa ? mesConsulta : formatarMesReceita(receita.data);
+      const dataDaOcorrencia = receita.fixa ? filtroMes.inicio : receita.data;
 
       return {
         id: receita.id,

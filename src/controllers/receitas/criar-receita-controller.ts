@@ -15,7 +15,7 @@ const criarReceitaBodySchema = z.object({
     .number()
     .int()
     .positive()
-    .max(120, "O parcelamento deve ter no maximo 120 parcelas")
+    .max(100, "Nao e possivel criar parcelamento com mais de 100 parcelas")
     .optional(),
 });
 

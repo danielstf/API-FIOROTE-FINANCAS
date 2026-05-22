@@ -1,4 +1,5 @@
 import { Despesa, Receita } from "@prisma/client";
+import { prisma } from "../../lib/prisma";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { ReceitaRepositoryInterface } from "../../repositories/interface/receitas/receita-repo-interface";
 import {
@@ -33,6 +34,9 @@ function somarDespesas(despesas: Despesa[]) {
 }
 
 export class ResumoFinanceiroUseCase {
+  private receitasPorMes = new Map<string, Promise<Receita[]>>();
+  private despesasPorMes = new Map<string, Promise<Despesa[]>>();
+
   constructor(
     private receitaRepository: ReceitaRepositoryInterface,
     private despesaRepository: DespesaRepositoryInterface,
@@ -93,7 +97,11 @@ export class ResumoFinanceiroUseCase {
     mesLimite: Date,
   ) {
     let saldo = 0;
-    const mesCursor = new Date(2000, 0, 1);
+    const mesCursor = await this.buscarPrimeiroMesComMovimento(
+      usuarioId,
+      perfilFinanceiroId,
+      mesLimite,
+    );
 
     while (mesCursor < mesLimite) {
       const intervalo = criarIntervaloDoMes(formatarMesReceita(mesCursor));
@@ -194,14 +202,25 @@ export class ResumoFinanceiroUseCase {
     perfilFinanceiroId: string | null | undefined,
     mes: Date,
   ) {
+    const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${formatarMesReceita(mes)}`;
+    const receitaEmCache = this.receitasPorMes.get(chave);
+
+    if (receitaEmCache) {
+      return receitaEmCache;
+    }
+
     const intervalo = criarIntervaloDoMes(formatarMesReceita(mes));
 
-    return this.receitaRepository.listByUsuario({
+    const promessa = this.receitaRepository.listByUsuario({
       usuarioId,
       perfilFinanceiroId,
       dataInicio: intervalo.inicio,
       dataFim: intervalo.fim,
     });
+
+    this.receitasPorMes.set(chave, promessa);
+
+    return promessa;
   }
 
   private async buscarDespesasDoMes(
@@ -209,14 +228,63 @@ export class ResumoFinanceiroUseCase {
     perfilFinanceiroId: string | null | undefined,
     mes: Date,
   ) {
+    const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${formatarMesReceita(mes)}`;
+    const despesaEmCache = this.despesasPorMes.get(chave);
+
+    if (despesaEmCache) {
+      return despesaEmCache;
+    }
+
     const intervalo = criarIntervaloDoMes(formatarMesReceita(mes));
 
-    return this.despesaRepository.listByUsuario({
+    const promessa = this.despesaRepository.listByUsuario({
       usuarioId,
       perfilFinanceiroId,
       dataInicio: intervalo.inicio,
       dataFim: intervalo.fim,
     });
+
+    this.despesasPorMes.set(chave, promessa);
+
+    return promessa;
+  }
+
+  private async buscarPrimeiroMesComMovimento(
+    usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
+    mesLimite: Date,
+  ) {
+    const [primeiraReceita, primeiraDespesa] = await Promise.all([
+      prisma.receita.aggregate({
+        where: {
+          usuarioId,
+          perfilFinanceiroId: perfilFinanceiroId ?? null,
+          data: { lt: mesLimite },
+        },
+        _min: { data: true },
+      }),
+      prisma.despesa.aggregate({
+        where: {
+          usuarioId,
+          perfilFinanceiroId: perfilFinanceiroId ?? null,
+          mesReferencia: { lt: mesLimite },
+        },
+        _min: { mesReferencia: true },
+      }),
+    ]);
+
+    const datas = [
+      primeiraReceita._min.data,
+      primeiraDespesa._min.mesReferencia,
+    ].filter((data): data is Date => Boolean(data));
+
+    if (datas.length === 0) {
+      return new Date(mesLimite);
+    }
+
+    const primeiraData = new Date(Math.min(...datas.map((data) => data.getTime())));
+
+    return new Date(primeiraData.getFullYear(), primeiraData.getMonth(), 1);
   }
 
   private montarPizzaCategorias(despesas: Despesa[]) {

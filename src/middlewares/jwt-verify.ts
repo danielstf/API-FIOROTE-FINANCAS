@@ -7,7 +7,7 @@ export async function JWTVerify(request: FastifyRequest, reply: FastifyReply) {
     await request.jwtVerify();
 
     if (!request.user.sid) {
-      return reply.status(401).send({ message: "not authorized" });
+      return reply.status(401).send({ message: "Sua sessão expirou. Faça login novamente." });
     }
 
     const sessao = await prisma.sessaoUsuario.updateMany({
@@ -25,7 +25,7 @@ export async function JWTVerify(request: FastifyRequest, reply: FastifyReply) {
     });
 
     if (sessao.count === 0) {
-      return reply.status(401).send({ message: "not authorized" });
+      return reply.status(401).send({ message: "Sua sessão expirou. Faça login novamente." });
     }
 
     const perfilFinanceiroId = getPerfilFinanceiroId(request);
@@ -39,10 +39,12 @@ export async function JWTVerify(request: FastifyRequest, reply: FastifyReply) {
       });
 
       if (!perfil) {
-        return reply.status(403).send({ message: "Perfil financeiro invalido" });
+        return reply.status(403).send({
+          message: "Não foi possível acessar este perfil financeiro.",
+        });
       }
     }
   } catch {
-    return reply.status(401).send({ message: "not authorized" });
+    return reply.status(401).send({ message: "Sua sessão expirou. Faça login novamente." });
   }
 }

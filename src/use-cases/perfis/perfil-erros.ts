@@ -1,6 +1,6 @@
 export class PlanoPremiumObrigatorioError extends Error {
   constructor() {
-    super("Recurso disponivel apenas para usuarios Premium");
+    super("Este recurso está disponível apenas para usuários Premium.");
   }
 }
 

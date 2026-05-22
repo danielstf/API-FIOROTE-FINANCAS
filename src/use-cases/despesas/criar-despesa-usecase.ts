@@ -22,7 +22,7 @@ interface CriarDespesaUseCaseRequest {
 
 export class UsuarioNaoEncontradoError extends Error {
   constructor() {
-    super("Usuario nao encontrado");
+    super("Usuário não encontrado.");
   }
 }
 
@@ -97,8 +97,9 @@ export class CriarDespesaUseCase {
 
     const vencimento = criarDataOpcional(dataVencimento);
     const mesReferencia = criarMesReferencia(mes, vencimento);
-    const totalParcelas = numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
+    const totalParcelas = !fixa && numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
     const parcelamentoId = totalParcelas > 1 ? randomUUID() : null;
+    const recorrenciaFim = fixa ? somarMeses(mesReferencia, 12) : null;
 
     const despesas = await this.despesaRepository.createMany(
       Array.from({ length: totalParcelas }, (_, index) => ({
@@ -115,6 +116,7 @@ export class CriarDespesaUseCase {
         mesReferencia: somarMeses(mesReferencia, index),
         dataVencimento: vencimento ? somarMeses(vencimento, index) : null,
         fixa,
+        recorrenciaFim,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,
         parcelamentoId,

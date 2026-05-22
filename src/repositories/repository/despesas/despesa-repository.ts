@@ -2,6 +2,8 @@ import { Despesa, FormaPagamentoDespesa } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { DespesaRepositoryInterface } from "../../interface/despesas/despesa-repo-interface";
 
+const renovacoesRecorrencia = new Set<string>();
+
 interface CriarDespesaData {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
@@ -81,6 +83,8 @@ export class DespesaRepository implements DespesaRepositoryInterface {
     somenteVencidas,
     paga,
   }: ListarPorUsuarioParams): Promise<Despesa[]> {
+    await renovarRecorrenciasFixas(usuarioId, perfilFinanceiroId);
+
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
@@ -235,4 +239,39 @@ export class DespesaRepository implements DespesaRepositoryInterface {
       },
     });
   }
+}
+
+async function renovarRecorrenciasFixas(
+  usuarioId: string,
+  perfilFinanceiroId?: string | null,
+) {
+  const mesAtual = new Date();
+  mesAtual.setDate(1);
+  mesAtual.setHours(0, 0, 0, 0);
+
+  const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
+
+  if (renovacoesRecorrencia.has(chave)) {
+    return;
+  }
+
+  const horizonte = new Date(mesAtual);
+  horizonte.setMonth(horizonte.getMonth() + 12);
+
+  await prisma.despesa.updateMany({
+    where: {
+      usuarioId,
+      perfilFinanceiroId: perfilFinanceiroId ?? null,
+      fixa: true,
+      recorrenciaFim: {
+        gte: mesAtual,
+        lt: horizonte,
+      },
+    },
+    data: {
+      recorrenciaFim: horizonte,
+    },
+  });
+
+  renovacoesRecorrencia.add(chave);
 }

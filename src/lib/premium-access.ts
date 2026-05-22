@@ -23,14 +23,16 @@ export async function bloquearRecursoPremiumSeNecessario(
   });
 
   if (!usuario) {
-    reply.status(404).send({ message: "Usuario nao encontrado" });
+    reply.status(404).send({ message: "Usuário não encontrado." });
     return true;
   }
 
   const usuarioAtualizado = await atualizarPremiumExpirado(usuario);
 
   if (!usuarioTemPremiumAtivo(usuarioAtualizado)) {
-    reply.status(403).send({ message: "Recurso disponivel apenas no Premium" });
+    reply.status(403).send({
+      message: "Este recurso está disponível apenas para usuários Premium.",
+    });
     return true;
   }
 

@@ -1,7 +1,7 @@
 import { FormaPagamentoDespesa } from "@prisma/client";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { formatarDespesa } from "./despesa-dados";
-import { criarIntervaloDoMes } from "../receitas/receita-mes";
+import { criarIntervaloDoMes, formatarMesReceita } from "../receitas/receita-mes";
 
 interface ListarDespesasUseCaseRequest {
   usuarioId: string;
@@ -31,15 +31,16 @@ export class ListarDespesasUseCase {
     const filtroForma = somenteCartao
       ? FormaPagamentoDespesa.CARTAO_CREDITO
       : formaPagamento;
-    const filtroMes = mes ? criarIntervaloDoMes(mes) : null;
+    const mesConsulta = mes ?? formatarMesReceita(new Date());
+    const filtroMes = criarIntervaloDoMes(mesConsulta);
 
     const despesas = await this.despesaRepository.listByUsuario({
       usuarioId,
       perfilFinanceiroId,
       formaPagamento: filtroForma,
       cartaoCreditoId,
-      dataInicio: filtroMes?.inicio,
-      dataFim: filtroMes?.fim,
+      dataInicio: filtroMes.inicio,
+      dataFim: filtroMes.fim,
       somenteVencidas,
       paga,
     });

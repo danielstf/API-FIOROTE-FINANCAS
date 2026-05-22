@@ -1,6 +1,7 @@
 import { Usuario } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
+import { calcularPremiumExpiraEm } from "../pagamentos/premium-validade";
 
 interface CreateUsuarioUseCaseRequest {
   email: string;
@@ -32,6 +33,9 @@ export class CreateUsuarioUseCase {
       email,
       senha: hashedSenha,
       nome,
+      plano: "PREMIUM",
+      exibirAnuncios: false,
+      premiumExpiraEm: calcularPremiumExpiraEm(),
     });
 
     return {

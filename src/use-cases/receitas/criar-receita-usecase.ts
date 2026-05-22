@@ -15,7 +15,7 @@ interface CriarReceitaUseCaseRequest {
 
 export class UsuarioNaoEncontradoError extends Error {
   constructor() {
-    super("Usuario nao encontrado");
+    super("Usuário não encontrado.");
   }
 }
 
@@ -53,8 +53,9 @@ export class CriarReceitaUseCase {
 
     // O mes e salvo como uma data no primeiro dia do mes informado.
     const data = criarDataDoMes(mes);
-    const totalParcelas = numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
+    const totalParcelas = !fixa && numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
     const parcelamentoId = totalParcelas > 1 ? randomUUID() : null;
+    const recorrenciaFim = fixa ? somarMeses(data, 12) : null;
 
     const receitas = await this.receitaRepository.createMany(
       Array.from({ length: totalParcelas }, (_, index) => ({
@@ -66,7 +67,8 @@ export class CriarReceitaUseCase {
         data: somarMeses(data, index),
         usuarioId,
         perfilFinanceiroId,
-        fixa: totalParcelas > 1 ? false : fixa,
+        fixa,
+        recorrenciaFim,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,
         parcelamentoId,

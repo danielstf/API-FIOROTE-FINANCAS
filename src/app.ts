@@ -21,7 +21,6 @@ const allowedOrigins = new Set([
   "http://localhost:5176",
   "http://localhost:8083",
   "http://localhost:19006",
-  "http://localhost:5176",
   "localhost:5176",
   env.FRONTEND_URL,
   "https://front-fiorote-financas-production.up.railway.app",
@@ -92,7 +91,7 @@ app.get("/health", async () => {
 app.setErrorHandler((error, _request, reply) => {
   if (error instanceof ZodError) {
     return reply.status(400).send({
-      message: "Dados invalidos",
+      message: "Revise as informações preenchidas e tente novamente.",
       issues: error.issues.map((issue) => ({
         path: issue.path.join("."),
         message: issue.message,
@@ -100,8 +99,10 @@ app.setErrorHandler((error, _request, reply) => {
     });
   }
 
-  console.error("Erro nao tratado:", error);
-  return reply.status(500).send({ message: "Erro interno do servidor" });
+  console.error("Erro não tratado:", error);
+  return reply.status(500).send({
+    message: "Não foi possível concluir a operação. Tente novamente em alguns minutos.",
+  });
 });
 
 app.register(fastifyJwt, {
@@ -120,4 +121,3 @@ app.register(dashboardRoutes);
 app.register(sugestoesRoutes);
 app.register(perfisRoutes);
 app.register(adminRoutes);
-

@@ -16,7 +16,9 @@ export function RoleVerify(
     const allowedRoles = Array.isArray(allowed) ? allowed : [allowed];
 
     if (!allowedRoles.includes(role)) {
-      return reply.status(403).send({ message: "Not authorized" });
+      return reply.status(403).send({
+        message: "Você não tem permissão para acessar esta área.",
+      });
     }
   };
 }

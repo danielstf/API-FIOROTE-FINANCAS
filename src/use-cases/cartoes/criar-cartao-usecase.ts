@@ -10,7 +10,7 @@ interface CriarCartaoUseCaseRequest {
 
 export class UsuarioNaoEncontradoError extends Error {
   constructor() {
-    super("Usuario nao encontrado");
+    super("Usuário não encontrado.");
   }
 }
 

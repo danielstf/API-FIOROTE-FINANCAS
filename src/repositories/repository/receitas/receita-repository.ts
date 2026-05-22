@@ -2,6 +2,8 @@ import { prisma } from "../../../lib/prisma";
 import { Receita } from "@prisma/client";
 import { ReceitaRepositoryInterface } from "../../interface/receitas/receita-repo-interface";
 
+const renovacoesRecorrencia = new Set<string>();
+
 interface CriarReceitaData {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
@@ -63,6 +65,8 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
     dataInicio,
     dataFim,
   }: ListarPorUsuarioParams): Promise<Receita[]> {
+    await renovarRecorrenciasFixas(usuarioId, perfilFinanceiroId);
+
     const receitas = await prisma.receita.findMany({
       where: {
         usuarioId,
@@ -162,4 +166,39 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
       },
     });
   }
+}
+
+async function renovarRecorrenciasFixas(
+  usuarioId: string,
+  perfilFinanceiroId?: string | null,
+) {
+  const mesAtual = new Date();
+  mesAtual.setDate(1);
+  mesAtual.setHours(0, 0, 0, 0);
+
+  const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
+
+  if (renovacoesRecorrencia.has(chave)) {
+    return;
+  }
+
+  const horizonte = new Date(mesAtual);
+  horizonte.setMonth(horizonte.getMonth() + 12);
+
+  await prisma.receita.updateMany({
+    where: {
+      usuarioId,
+      perfilFinanceiroId: perfilFinanceiroId ?? null,
+      fixa: true,
+      recorrenciaFim: {
+        gte: mesAtual,
+        lt: horizonte,
+      },
+    },
+    data: {
+      recorrenciaFim: horizonte,
+    },
+  });
+
+  renovacoesRecorrencia.add(chave);
 }
