@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeEditarReceitaFactory } from "../../factory/receitas-factory/editar-receita-factory";
 import { ReceitaNaoEncontradaError } from "../../use-cases/receitas/obter-receita-usecase";
-import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+import { MesReceitaInvalidoError, OperacaoEmMesPassadoError } from "../../use-cases/receitas/receita-mes";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 
 const editarReceitaParamsSchema = z.object({
@@ -60,6 +60,10 @@ export async function editarReceitaController(
     }
 
     if (error instanceof MesReceitaInvalidoError) {
+      return reply.status(400).send({ message: error.message });
+    }
+
+    if (error instanceof OperacaoEmMesPassadoError) {
       return reply.status(400).send({ message: error.message });
     }
 

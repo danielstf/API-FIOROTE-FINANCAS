@@ -1,6 +1,6 @@
 import { Receita } from "@prisma/client";
 import { ReceitaRepositoryInterface } from "../../repositories/interface/receitas/receita-repo-interface";
-import { criarDataDoMes, formatarMesReceita, somarMeses } from "./receita-mes";
+import { criarDataDoMes, formatarMesReceita, mesAtualOuFuturo, OperacaoEmMesPassadoError, somarMeses } from "./receita-mes";
 import { ReceitaNaoEncontradaError } from "./obter-receita-usecase";
 
 function formatarReceita(r: Receita) {
@@ -49,6 +49,20 @@ export class EditarReceitaUseCase {
 
     if (!receitaExistente) {
       throw new ReceitaNaoEncontradaError();
+    }
+
+    // Receita fixa: bloqueia operacoes em meses passados.
+    if (receitaExistente.fixa && mes) {
+      if (!mesAtualOuFuturo(criarDataDoMes(mes))) {
+        throw new OperacaoEmMesPassadoError();
+      }
+    }
+
+    // Receita parcelada: bloqueia se o registro pertence a um mes passado.
+    if (!receitaExistente.fixa && receitaExistente.parcelamentoId) {
+      if (!mesAtualOuFuturo(new Date(receitaExistente.data))) {
+        throw new OperacaoEmMesPassadoError();
+      }
     }
 
     // "Editar este e todos os seguintes": encerra o original e cria um novo a partir do mes informado.

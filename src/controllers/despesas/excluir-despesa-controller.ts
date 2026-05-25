@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeExcluirDespesaFactory } from "../../factory/despesas-factory/excluir-despesa-factory";
 import { DespesaNaoEncontradaError } from "../../use-cases/despesas/obter-despesa-usecase";
-import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+import { MesReceitaInvalidoError, OperacaoEmMesPassadoError } from "../../use-cases/receitas/receita-mes";
 
 const excluirDespesaParamsSchema = z.object({
   despesaId: z.string().uuid("Id da despesa invalido"),
@@ -44,6 +44,10 @@ export async function excluirDespesaController(
     }
 
     if (error instanceof MesReceitaInvalidoError) {
+      return reply.status(400).send({ message: error.message });
+    }
+
+    if (error instanceof OperacaoEmMesPassadoError) {
       return reply.status(400).send({ message: error.message });
     }
 

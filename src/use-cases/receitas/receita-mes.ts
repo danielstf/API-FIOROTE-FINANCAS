@@ -49,3 +49,16 @@ export class MesReceitaInvalidoError extends Error {
     super("Mes da receita invalido. Use o formato YYYY-MM");
   }
 }
+
+export class OperacaoEmMesPassadoError extends Error {
+  constructor() {
+    super("Nao e possivel alterar lancamentos de meses anteriores");
+  }
+}
+
+export function mesAtualOuFuturo(data: Date): boolean {
+  const inicio = new Date();
+  inicio.setDate(1);
+  inicio.setHours(0, 0, 0, 0);
+  return data >= inicio;
+}

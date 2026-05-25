@@ -9,7 +9,7 @@ import {
 } from "../../use-cases/despesas/criar-despesa-usecase";
 import { DataDespesaInvalidaError } from "../../use-cases/despesas/despesa-dados";
 import { DespesaNaoEncontradaError } from "../../use-cases/despesas/obter-despesa-usecase";
-import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+import { MesReceitaInvalidoError, OperacaoEmMesPassadoError } from "../../use-cases/receitas/receita-mes";
 
 const editarDespesaParamsSchema = z.object({
   despesaId: z.string().uuid("Id da despesa invalido"),
@@ -113,6 +113,10 @@ export async function editarDespesaController(
 
     if (error instanceof CartaoNaoEncontradoError) {
       return reply.status(404).send({ message: error.message });
+    }
+
+    if (error instanceof OperacaoEmMesPassadoError) {
+      return reply.status(400).send({ message: error.message });
     }
 
     console.error("Erro ao editar despesa:", error);

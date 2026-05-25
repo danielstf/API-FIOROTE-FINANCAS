@@ -1,6 +1,6 @@
 import { ReceitaRepositoryInterface } from "../../repositories/interface/receitas/receita-repo-interface";
 import { ReceitaNaoEncontradaError } from "./obter-receita-usecase";
-import { criarDataDoMes } from "./receita-mes";
+import { criarDataDoMes, mesAtualOuFuturo, OperacaoEmMesPassadoError } from "./receita-mes";
 
 interface ExcluirReceitaUseCaseRequest {
   usuarioId: string;
@@ -21,6 +21,21 @@ export class ExcluirReceitaUseCase {
 
     if (!receita) {
       throw new ReceitaNaoEncontradaError();
+    }
+
+    // Receita fixa: bloqueia operacoes em meses passados.
+    if (receita.fixa) {
+      const mesAlvo = mes ? criarDataDoMes(mes) : new Date(receita.data);
+      if (!mesAtualOuFuturo(mesAlvo)) {
+        throw new OperacaoEmMesPassadoError();
+      }
+    }
+
+    // Receita parcelada: bloqueia se o registro pertence a um mes passado.
+    if (!receita.fixa && receita.parcelamentoId) {
+      if (!mesAtualOuFuturo(new Date(receita.data))) {
+        throw new OperacaoEmMesPassadoError();
+      }
     }
 
     if (receita.fixa && escopo !== "todas") {

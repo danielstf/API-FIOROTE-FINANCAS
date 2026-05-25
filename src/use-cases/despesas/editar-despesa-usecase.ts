@@ -2,7 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { CartaoRepositoryInterface } from "../../repositories/interface/cartoes/cartao-repo-interface";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despesa-dados";
-import { criarDataDoMes, somarMeses } from "../receitas/receita-mes";
+import { criarDataDoMes, mesAtualOuFuturo, OperacaoEmMesPassadoError, somarMeses } from "../receitas/receita-mes";
 import {
   CartaoNaoEncontradoError,
   CartaoObrigatorioError,
@@ -82,6 +82,21 @@ export class EditarDespesaUseCase {
 
     if (formaFinal !== FormaPagamentoDespesa.CARTAO_CREDITO) {
       cartaoId = null;
+    }
+
+    // Despesa fixa: bloqueia operacoes em meses passados.
+    if (despesaExistente.fixa && mes) {
+      const mesAlvo = criarDataDoMes(mes);
+      if (!mesAtualOuFuturo(mesAlvo)) {
+        throw new OperacaoEmMesPassadoError();
+      }
+    }
+
+    // Despesa parcelada: bloqueia se o registro pertence a um mes passado.
+    if (!despesaExistente.fixa && despesaExistente.parcelamentoId) {
+      if (!mesAtualOuFuturo(new Date(despesaExistente.mesReferencia))) {
+        throw new OperacaoEmMesPassadoError();
+      }
     }
 
     // "Editar este e todos os seguintes": encerra o original e cria um novo a partir do mes informado.

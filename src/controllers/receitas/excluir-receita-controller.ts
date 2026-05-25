@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeExcluirReceitaFactory } from "../../factory/receitas-factory/excluir-receita-factory";
 import { ReceitaNaoEncontradaError } from "../../use-cases/receitas/obter-receita-usecase";
-import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
+import { MesReceitaInvalidoError, OperacaoEmMesPassadoError } from "../../use-cases/receitas/receita-mes";
 
 const excluirReceitaParamsSchema = z.object({
   receitaId: z.string().uuid("Id da receita invalido"),
@@ -37,6 +37,10 @@ export async function excluirReceitaController(
     }
 
     if (error instanceof MesReceitaInvalidoError) {
+      return reply.status(400).send({ message: error.message });
+    }
+
+    if (error instanceof OperacaoEmMesPassadoError) {
       return reply.status(400).send({ message: error.message });
     }
 
