@@ -42,9 +42,14 @@ export class ExcluirDespesaUseCase {
     }
 
     if (despesa.fixa && excluirTodas) {
-      await this.despesaRepository.update(despesa.id, {
-        recorrenciaFim: mes ? criarDataDoMes(mes) : despesa.mesReferencia,
-      });
+      const mesAlvo = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
+      // Um dia antes do mês alvo garante que a renovação automática não re-estenda
+      // a data (renovarRecorrenciasFixas só toca registros com recorrenciaFim >= mesAtual)
+      // e que a despesa não apareça a partir do mês selecionado na query de listagem.
+      const recorrenciaFim = new Date(mesAlvo);
+      recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
+
+      await this.despesaRepository.update(despesa.id, { recorrenciaFim });
       return;
     }
 
