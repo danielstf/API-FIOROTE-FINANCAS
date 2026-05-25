@@ -35,6 +35,7 @@ export class ExcluirReceitaUseCase {
     if (receita.fixa && escopo === "todas") {
       await this.receitaRepository.update(receita.id, {
         recorrenciaFim: mes ? criarDataDoMes(mes) : receita.data,
+        recorrenciaEncerrada: true,
       });
       return;
     }

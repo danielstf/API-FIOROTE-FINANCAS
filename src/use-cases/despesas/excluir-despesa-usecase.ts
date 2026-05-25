@@ -49,7 +49,7 @@ export class ExcluirDespesaUseCase {
       const recorrenciaFim = new Date(mesAlvo);
       recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
 
-      await this.despesaRepository.update(despesa.id, { recorrenciaFim });
+      await this.despesaRepository.update(despesa.id, { recorrenciaFim, recorrenciaEncerrada: true });
       return;
     }
 

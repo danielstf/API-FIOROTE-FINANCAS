@@ -26,6 +26,7 @@ interface AtualizarReceitaData {
   data?: Date;
   fixa?: boolean;
   recorrenciaFim?: Date | null;
+  recorrenciaEncerrada?: boolean;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;

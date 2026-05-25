@@ -21,6 +21,7 @@ interface EditarDespesaUseCaseRequest {
   mes?: string | null;
   dataVencimento?: string | null;
   fixa?: boolean;
+  escopo?: "mes" | "todas";
 }
 
 export class EditarDespesaUseCase {
@@ -41,8 +42,8 @@ export class EditarDespesaUseCase {
     mes,
     dataVencimento,
     fixa,
+    escopo,
   }: EditarDespesaUseCaseRequest) {
-    // Garante que a despesa pertence ao usuario antes de atualizar.
     const despesaExistente = await this.despesaRepository.findByIdAndUsuario(
       despesaId,
       usuarioId,
@@ -83,6 +84,40 @@ export class EditarDespesaUseCase {
       cartaoId = null;
     }
 
+    // "Editar este e todos os seguintes": encerra o original e cria um novo a partir do mes informado.
+    if (despesaExistente.fixa && escopo === "todas" && mes) {
+      const mesAlvo = criarDataDoMes(mes);
+      const recorrenciaFim = new Date(mesAlvo);
+      recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
+
+      await this.despesaRepository.update(despesaExistente.id, {
+        recorrenciaFim,
+        recorrenciaEncerrada: true,
+      });
+
+      const novaDespesa = await this.despesaRepository.create({
+        usuarioId,
+        perfilFinanceiroId: perfilFinanceiroId ?? despesaExistente.perfilFinanceiroId,
+        descricao: nome?.trim() ?? despesaExistente.descricao,
+        valor: valor ?? Number(despesaExistente.valor),
+        categoriaNome:
+          categoria === undefined
+            ? despesaExistente.categoriaNome
+            : categoria?.trim() || null,
+        formaPagamento: formaFinal,
+        cartaoCreditoId:
+          cartaoId === undefined ? despesaExistente.cartaoCreditoId : cartaoId,
+        mesReferencia: mesAlvo,
+        dataVencimento:
+          vencimento === undefined ? despesaExistente.dataVencimento : vencimento,
+        fixa: true,
+        recorrenciaFim: somarMeses(mesAlvo, 12),
+      });
+
+      return formatarDespesa(novaDespesa);
+    }
+
+    // "Editar só este mês": cria excecao no original e um registro avulso para o mes.
     if (despesaExistente.fixa && mes) {
       const mesReferencia = criarDataDoMes(mes);
       const diferencaMeses =

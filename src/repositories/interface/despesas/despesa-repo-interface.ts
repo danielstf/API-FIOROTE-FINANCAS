@@ -40,6 +40,7 @@ interface AtualizarDespesaData {
   dataPagamento?: Date | null;
   fixa?: boolean;
   recorrenciaFim?: Date | null;
+  recorrenciaEncerrada?: boolean;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;

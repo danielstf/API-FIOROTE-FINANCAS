@@ -7,83 +7,76 @@ datasource db {
 }
 
 model Usuario {
-  id       String   @id @default(uuid())
-  nome     String
-  email    String   @unique
-  senha    String?
-  googleId String?  @unique
-  criadoEm DateTime @default(now())
-
-  plano          Plano   @default(FREE) // Novo campo para plano
-  premiumExpiraEm DateTime? // Data em que o plano premium deixa de valer
-  exibirAnuncios Boolean @default(true) // Se usuário Free exibe anúncios
-
-  role Role @default(USER)
-
-  resetToken    String?
-  resetTokenExp DateTime?
-
-  receitas Receita[]
-  despesas Despesa[]
-  receitasExcecoesRecorrencia ReceitaExcecaoRecorrencia[]
-
-  categorias Categoria[]
-
-  pagamentosPremium PagamentoPremium[]
-  cartoesCredito CartaoCredito[]
+  id                          String                      @id @default(uuid())
+  nome                        String
+  email                       String                      @unique
+  senha                       String?
+  googleId                    String?                     @unique
+  criadoEm                    DateTime                    @default(now())
+  plano                       Plano                       @default(FREE)
+  premiumExpiraEm             DateTime?
+  exibirAnuncios              Boolean                     @default(true)
+  role                        Role                        @default(USER)
+  resetToken                  String?
+  resetTokenExp               DateTime?
+  cartoesCredito              CartaoCredito[]
+  categorias                  Categoria[]
+  despesas                    Despesa[]
   despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
-  sugestoes Sugestao[]
-  perfisFinanceiros PerfilFinanceiro[]
-  sessoes SessaoUsuario[]
+  pagamentosPremium           PagamentoPremium[]
+  perfisFinanceiros           PerfilFinanceiro[]
+  receitas                    Receita[]
+  receitasExcecoesRecorrencia ReceitaExcecaoRecorrencia[]
+  sessoes                     SessaoUsuario[]
+  sugestoes                   Sugestao[]
 }
 
 model SessaoUsuario {
-  id         String   @id @default(uuid())
-  usuarioId  String
-  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  criadaEm   DateTime @default(now())
+  id           String   @id @default(uuid())
+  usuarioId    String
+  criadaEm     DateTime @default(now())
   atualizadaEm DateTime @updatedAt
-  expiraEm   DateTime
+  expiraEm     DateTime
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
   @@index([atualizadaEm])
   @@index([expiraEm])
 }
 
-
 model PerfilFinanceiro {
-  id        String   @id @default(uuid())
-  nome      String
-  avatar    String   @default("user")
-  tema      String   @default("system")
-  criadoEm  DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
-
-  usuarioId String
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  receitas Receita[]
-  despesas Despesa[]
+  id             String          @id @default(uuid())
+  nome           String
+  avatar         String          @default("user")
+  tema           String          @default("system")
+  criadoEm       DateTime        @default(now())
+  atualizadoEm   DateTime        @updatedAt
+  usuarioId      String
   cartoesCredito CartaoCredito[]
+  despesas       Despesa[]
+  usuario        Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  receitas       Receita[]
 
   @@unique([usuarioId, nome])
   @@index([usuarioId, criadoEm])
 }
+
 model PagamentoPremium {
-  id                         String          @id @default(uuid())
-  usuarioId                  String
-  usuario                    Usuario         @relation(fields: [usuarioId], references: [id])
-  mercadoPagoPreferenceId    String?         @unique
-  mercadoPagoPreapprovalId   String?         @unique
-  mercadoPagoPaymentId       String?         @unique
-  externalReference          String          @unique
-  tipo                       PagamentoTipo   @default(CHECKOUT)
-  status                     PagamentoStatus @default(PENDING)
-  assinaturaStatus           String?
-  valor                      Decimal         @db.Decimal(10, 2)
-  checkoutUrl                String?
-  canceladoEm                DateTime?
-  criadoEm                   DateTime        @default(now())
-  atualizadoEm               DateTime        @updatedAt
+  id                       String          @id @default(uuid())
+  usuarioId                String
+  mercadoPagoPreferenceId  String?         @unique
+  mercadoPagoPreapprovalId String?         @unique
+  mercadoPagoPaymentId     String?         @unique
+  externalReference        String          @unique
+  tipo                     PagamentoTipo   @default(CHECKOUT)
+  status                   PagamentoStatus @default(PENDING)
+  assinaturaStatus         String?
+  valor                    Decimal         @db.Decimal(10, 2)
+  checkoutUrl              String?
+  canceladoEm              DateTime?
+  criadoEm                 DateTime        @default(now())
+  atualizadoEm             DateTime        @updatedAt
+  usuario                  Usuario         @relation(fields: [usuarioId], references: [id])
 
   @@index([usuarioId, criadoEm])
   @@index([status, criadoEm])
@@ -91,27 +84,24 @@ model PagamentoPremium {
 }
 
 model Receita {
-  id        String   @id @default(uuid())
-  descricao String
-  valor     Decimal  @db.Decimal(10, 2)
-  data      DateTime
-  fixa      Boolean  @default(false)
-  recorrenciaFim DateTime?
-  numeroParcelas Int?
-  parcelaAtual   Int?
-  parcelamentoId String?
-  criadoEm  DateTime @default(now())
-
-  usuarioId String
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
-
-  perfilFinanceiroId String?
-  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
-
-  categoriaId String?
-  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
-
-  excecoesRecorrencia ReceitaExcecaoRecorrencia[]
+  id                   String                      @id @default(uuid())
+  descricao            String
+  valor                Decimal                     @db.Decimal(10, 2)
+  data                 DateTime
+  fixa                 Boolean                     @default(false)
+  recorrenciaFim       DateTime?
+  recorrenciaEncerrada Boolean                     @default(false)
+  numeroParcelas       Int?
+  parcelaAtual         Int?
+  parcelamentoId       String?
+  criadoEm             DateTime                    @default(now())
+  usuarioId            String
+  perfilFinanceiroId   String?
+  categoriaId          String?
+  categoria            Categoria?                  @relation(fields: [categoriaId], references: [id])
+  perfilFinanceiro     PerfilFinanceiro?           @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
+  usuario              Usuario                     @relation(fields: [usuarioId], references: [id])
+  excecoesRecorrencia  ReceitaExcecaoRecorrencia[]
 
   @@index([usuarioId, perfilFinanceiroId, data])
   @@index([usuarioId, perfilFinanceiroId, fixa, data])
@@ -121,45 +111,42 @@ model Receita {
 model ReceitaExcecaoRecorrencia {
   id            String   @id @default(uuid())
   usuarioId     String
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   receitaId     String
-  receita       Receita  @relation(fields: [receitaId], references: [id], onDelete: Cascade)
   mesReferencia DateTime
   criadoEm      DateTime @default(now())
+  receita       Receita  @relation(fields: [receitaId], references: [id], onDelete: Cascade)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([receitaId, usuarioId, mesReferencia])
   @@index([usuarioId, mesReferencia])
 }
 
 model Despesa {
-  id             String    @id @default(uuid())
-  descricao      String
-  valor          Decimal   @db.Decimal(10, 2)
-  categoriaNome  String?
-  formaPagamento FormaPagamentoDespesa @default(DINHEIRO)
-  cartaoCreditoId String?
-  cartaoCredito   CartaoCredito? @relation(fields: [cartaoCreditoId], references: [id], onDelete: SetNull)
-  mesReferencia  DateTime  @default(now())
-  dataVencimento DateTime?
-  dataPagamento  DateTime?
-  paga           Boolean   @default(false)
-  fixa           Boolean   @default(false)
-  recorrenciaFim DateTime?
-  numeroParcelas Int?
-  parcelaAtual   Int?
-  parcelamentoId String?
-  criadoEm       DateTime  @default(now())
-
-  usuarioId String
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
-
-  perfilFinanceiroId String?
-  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
-
-  categoriaId String?
-  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
-
-  excecoesRecorrencia DespesaExcecaoRecorrencia[]
+  id                   String                      @id @default(uuid())
+  descricao            String
+  valor                Decimal                     @db.Decimal(10, 2)
+  categoriaNome        String?
+  formaPagamento       FormaPagamentoDespesa       @default(DINHEIRO)
+  cartaoCreditoId      String?
+  mesReferencia        DateTime                    @default(now())
+  dataVencimento       DateTime?
+  dataPagamento        DateTime?
+  paga                 Boolean                     @default(false)
+  fixa                 Boolean                     @default(false)
+  recorrenciaFim       DateTime?
+  recorrenciaEncerrada Boolean                     @default(false)
+  numeroParcelas       Int?
+  parcelaAtual         Int?
+  parcelamentoId       String?
+  criadoEm             DateTime                    @default(now())
+  usuarioId            String
+  perfilFinanceiroId   String?
+  categoriaId          String?
+  cartaoCredito        CartaoCredito?              @relation(fields: [cartaoCreditoId], references: [id])
+  categoria            Categoria?                  @relation(fields: [categoriaId], references: [id])
+  perfilFinanceiro     PerfilFinanceiro?           @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
+  usuario              Usuario                     @relation(fields: [usuarioId], references: [id])
+  excecoesRecorrencia  DespesaExcecaoRecorrencia[]
 
   @@index([usuarioId, perfilFinanceiroId, mesReferencia])
   @@index([usuarioId, perfilFinanceiroId, fixa, mesReferencia])
@@ -171,33 +158,29 @@ model Despesa {
 model DespesaExcecaoRecorrencia {
   id            String   @id @default(uuid())
   usuarioId     String
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   despesaId     String
-  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
   mesReferencia DateTime
   criadoEm      DateTime @default(now())
+  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([despesaId, usuarioId, mesReferencia])
   @@index([usuarioId, mesReferencia])
 }
 
 model CartaoCredito {
-  id       String   @id @default(uuid())
-  nome     String
-  criadoEm DateTime @default(now())
-
-  usuarioId String
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
-
+  id                 String            @id @default(uuid())
+  nome               String
+  criadoEm           DateTime          @default(now())
+  usuarioId          String
   perfilFinanceiroId String?
   perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
-
-  despesas Despesa[]
+  usuario            Usuario           @relation(fields: [usuarioId], references: [id])
+  despesas           Despesa[]
 
   @@unique([usuarioId, nome, perfilFinanceiroId])
   @@index([usuarioId, perfilFinanceiroId])
 }
-
 
 model Sugestao {
   id        String       @id @default(uuid())
@@ -206,24 +189,22 @@ model Sugestao {
   mensagem  String
   status    String       @default("ABERTO")
   criadoEm  DateTime     @default(now())
-
   usuarioId String
   usuario   Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId, criadoEm])
   @@index([tipo, criadoEm])
 }
+
 model Categoria {
-  id       String        @id @default(uuid())
-  nome     String
-  tipo     TipoCategoria
-  criadoEm DateTime      @default(now())
-
+  id        String        @id @default(uuid())
+  nome      String
+  tipo      TipoCategoria
+  criadoEm  DateTime      @default(now())
   usuarioId String
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
-
-  receitas Receita[]
-  despesas Despesa[]
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id])
+  despesas  Despesa[]
+  receitas  Receita[]
 }
 
 enum TipoCategoria {

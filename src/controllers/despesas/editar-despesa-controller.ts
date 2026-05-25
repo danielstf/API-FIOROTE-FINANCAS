@@ -40,6 +40,7 @@ const editarDespesaBodySchema = z
     mes: z.string().trim().optional().nullable(),
     dataVencimento: z.string().trim().optional().nullable(),
     fixa: z.boolean().optional(),
+    escopo: z.enum(["mes", "todas"]).optional(),
   })
   .refine(
     (data) =>
@@ -70,6 +71,7 @@ export async function editarDespesaController(
     mes,
     dataVencimento,
     fixa,
+    escopo,
   } =
     editarDespesaBodySchema.parse(request.body);
 
@@ -88,6 +90,7 @@ export async function editarDespesaController(
       mes,
       dataVencimento,
       fixa,
+      escopo,
     });
 
     return reply.status(200).send(despesa);

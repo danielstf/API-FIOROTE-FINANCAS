@@ -19,6 +19,7 @@ const editarReceitaBodySchema = z
       .optional(),
     mes: z.string().trim().min(1, "O mes da receita e obrigatorio").optional(),
     fixa: z.boolean().optional(),
+    escopo: z.enum(["mes", "todas"]).optional(),
   })
   .refine(
     (data) =>
@@ -36,7 +37,7 @@ export async function editarReceitaController(
   reply: FastifyReply,
 ) {
   const { receitaId } = editarReceitaParamsSchema.parse(request.params);
-  const { nome, valor, mes, fixa } = editarReceitaBodySchema.parse(request.body);
+  const { nome, valor, mes, fixa, escopo } = editarReceitaBodySchema.parse(request.body);
 
   try {
     const editarReceita = makeEditarReceitaFactory();
@@ -49,6 +50,7 @@ export async function editarReceitaController(
       valor,
       mes,
       fixa,
+      escopo,
     });
 
     return reply.status(200).send(receita);

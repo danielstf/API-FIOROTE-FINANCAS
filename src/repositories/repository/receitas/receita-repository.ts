@@ -30,6 +30,7 @@ interface AtualizarReceitaData {
   data?: Date;
   fixa?: boolean;
   recorrenciaFim?: Date | null;
+  recorrenciaEncerrada?: boolean;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -190,6 +191,7 @@ async function renovarRecorrenciasFixas(
       usuarioId,
       perfilFinanceiroId: perfilFinanceiroId ?? null,
       fixa: true,
+      recorrenciaEncerrada: false,
       recorrenciaFim: {
         gte: mesAtual,
         lt: horizonte,
