@@ -23,6 +23,7 @@ interface MovimentoMensal {
   despesas: number;
   saldoInicial: number;
   saldoFinal: number;
+  projecao: boolean;
 }
 
 function somarReceitas(receitas: Receita[]) {
@@ -48,6 +49,9 @@ export class ResumoFinanceiroUseCase {
     mes,
     meses,
   }: ResumoFinanceiroUseCaseRequest) {
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999);
+
     const mesAtual = criarDataDoMes(mes);
     const quantidadeMeses = Math.min(Math.max(meses, 1), 24);
     const primeiroMesGrafico = somarMeses(mesAtual, -(quantidadeMeses - 1));
@@ -62,12 +66,14 @@ export class ResumoFinanceiroUseCase {
       perfilFinanceiroId,
       mesAtual,
       saldoInicial,
+      hoje,
     );
     const evolucao = await this.calcularEvolucao(
       usuarioId,
       perfilFinanceiroId,
       primeiroMesGrafico,
       quantidadeMeses,
+      hoje,
     );
 
     const todasDespesasDoPeriodo = await this.buscarTodasDespesasDoPeriodo(
@@ -80,6 +86,12 @@ export class ResumoFinanceiroUseCase {
     return {
       mes,
       resumo: resumoMes,
+      previsao: {
+        descricao: "Estimativa considerando todos os lancamentos futuros agendados",
+        saldoPrevisto: resumoMes.saldoProjetado,
+        totalReceitasPrevistas: resumoMes.totalReceitas,
+        totalDespesasPrevistas: resumoMes.totalDespesas,
+      },
       graficos: {
         pizzaDespesasPorCategoria: this.montarPizzaCategorias(todasDespesasDoPeriodo),
         barrasMaioresGastos: this.montarMaioresGastos(todasDespesasDoPeriodo),
@@ -87,9 +99,48 @@ export class ResumoFinanceiroUseCase {
         linhaEvolucaoGastos: evolucao.map((item) => ({
           mes: item.mes,
           totalDespesas: item.despesas,
+          projecao: item.projecao,
         })),
       },
     };
+  }
+
+  // Retorna somente as despesas que ja se concretizaram:
+  // - meses passados: todas (o mes ja encerrou)
+  // - mes atual: apenas pagas ou com vencimento ate hoje
+  // - meses futuros: nenhuma (projecao)
+  private filtrarDespesasReais(despesas: Despesa[], mes: Date, hoje: Date): Despesa[] {
+    const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+    const ehPassado =
+      mes.getFullYear() < inicioMesAtual.getFullYear() ||
+      (mes.getFullYear() === inicioMesAtual.getFullYear() &&
+        mes.getMonth() < inicioMesAtual.getMonth());
+
+    if (ehPassado) return despesas;
+
+    const ehAtual =
+      mes.getFullYear() === inicioMesAtual.getFullYear() &&
+      mes.getMonth() === inicioMesAtual.getMonth();
+
+    if (ehAtual) {
+      return despesas.filter(
+        (d) =>
+          d.paga ||
+          (d.dataVencimento !== null && new Date(d.dataVencimento) <= hoje),
+      );
+    }
+
+    return [];
+  }
+
+  private ehMesFuturo(mes: Date, hoje: Date): boolean {
+    const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    return (
+      mes.getFullYear() > inicioMesAtual.getFullYear() ||
+      (mes.getFullYear() === inicioMesAtual.getFullYear() &&
+        mes.getMonth() > inicioMesAtual.getMonth())
+    );
   }
 
   private async calcularSaldoAteMes(
@@ -134,6 +185,7 @@ export class ResumoFinanceiroUseCase {
     perfilFinanceiroId: string | null | undefined,
     mes: Date,
     saldoInicial: number,
+    hoje: Date,
   ) {
     const [receitas, despesas] = await Promise.all([
       this.buscarReceitasDoMes(usuarioId, perfilFinanceiroId, mes),
@@ -149,13 +201,19 @@ export class ResumoFinanceiroUseCase {
       despesas.filter((despesa) => !despesa.paga),
     );
 
+    const despesasReais = this.filtrarDespesasReais(despesas, mes, hoje);
+    const totalDespesasReais = somarDespesas(despesasReais);
+
     return {
       saldoInicial,
       totalReceitas,
       totalDespesas,
       totalDespesasPagas,
       totalDespesasPendentes,
-      saldoFinal: saldoInicial + totalReceitas - totalDespesas,
+      // Saldo real: considera apenas despesas pagas ou vencidas ate hoje.
+      saldoFinal: saldoInicial + totalReceitas - totalDespesasReais,
+      // Saldo projetado: considera todos os lancamentos agendados (inclusive futuros).
+      saldoProjetado: saldoInicial + totalReceitas - totalDespesas,
       contasVencidas: despesas.filter(despesaEstaVencida).length,
     };
   }
@@ -165,6 +223,7 @@ export class ResumoFinanceiroUseCase {
     perfilFinanceiroId: string | null | undefined,
     primeiroMes: Date,
     quantidadeMeses: number,
+    hoje: Date,
   ) {
     const evolucao: MovimentoMensal[] = [];
     let saldo = await this.calcularSaldoAteMes(
@@ -175,6 +234,8 @@ export class ResumoFinanceiroUseCase {
 
     for (let index = 0; index < quantidadeMeses; index++) {
       const mes = somarMeses(primeiroMes, index);
+      const projecao = this.ehMesFuturo(mes, hoje);
+
       const [receitas, despesas] = await Promise.all([
         this.buscarReceitasDoMes(usuarioId, perfilFinanceiroId, mes),
         this.buscarDespesasDoMes(usuarioId, perfilFinanceiroId, mes),
@@ -182,7 +243,14 @@ export class ResumoFinanceiroUseCase {
 
       const totalReceitas = somarReceitas(receitas);
       const totalDespesas = somarDespesas(despesas);
-      const saldoFinal = saldo + totalReceitas - totalDespesas;
+
+      // Meses reais usam apenas despesas concretizadas; meses futuros usam tudo (projecao).
+      const despesasParaSaldo = projecao
+        ? despesas
+        : this.filtrarDespesasReais(despesas, mes, hoje);
+      const totalParaSaldo = somarDespesas(despesasParaSaldo);
+
+      const saldoFinal = saldo + totalReceitas - totalParaSaldo;
 
       evolucao.push({
         mes: formatarMesReceita(mes),
@@ -190,6 +258,7 @@ export class ResumoFinanceiroUseCase {
         despesas: totalDespesas,
         saldoInicial: saldo,
         saldoFinal,
+        projecao,
       });
 
       saldo = saldoFinal;
