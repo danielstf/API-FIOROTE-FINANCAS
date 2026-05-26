@@ -70,18 +70,19 @@ export class ResumoFinanceiroUseCase {
       quantidadeMeses,
     );
 
-    const despesasDoMes = await this.buscarDespesasDoMes(
+    const todasDespesasDoPeriodo = await this.buscarTodasDespesasDoPeriodo(
       usuarioId,
       perfilFinanceiroId,
-      mesAtual,
+      primeiroMesGrafico,
+      quantidadeMeses,
     );
 
     return {
       mes,
       resumo: resumoMes,
       graficos: {
-        pizzaDespesasPorCategoria: this.montarPizzaCategorias(despesasDoMes),
-        barrasMaioresGastos: this.montarMaioresGastos(despesasDoMes),
+        pizzaDespesasPorCategoria: this.montarPizzaCategorias(todasDespesasDoPeriodo),
+        barrasMaioresGastos: this.montarMaioresGastos(todasDespesasDoPeriodo),
         linhaEvolucaoFinanceira: evolucao,
         linhaEvolucaoGastos: evolucao.map((item) => ({
           mes: item.mes,
@@ -285,6 +286,21 @@ export class ResumoFinanceiroUseCase {
     const primeiraData = new Date(Math.min(...datas.map((data) => data.getTime())));
 
     return new Date(primeiraData.getFullYear(), primeiraData.getMonth(), 1);
+  }
+
+  private async buscarTodasDespesasDoPeriodo(
+    usuarioId: string,
+    perfilFinanceiroId: string | null | undefined,
+    primeiroMes: Date,
+    quantidadeMeses: number,
+  ) {
+    const promessas = Array.from({ length: quantidadeMeses }, (_, index) => {
+      const mes = somarMeses(primeiroMes, index);
+      return this.buscarDespesasDoMes(usuarioId, perfilFinanceiroId, mes);
+    });
+
+    const todasDespesas = await Promise.all(promessas);
+    return todasDespesas.flat();
   }
 
   private montarPizzaCategorias(despesas: Despesa[]) {
