@@ -99,9 +99,7 @@ export async function aplicarAssinaturaMercadoPago(
       ? PagamentoStatus.APPROVED
       : assinaturaStatus === "canceled" || assinaturaStatus === "cancelled"
         ? PagamentoStatus.CANCELLED
-        : assinaturaStatus === "paused"
-          ? PagamentoStatus.CANCELLED
-          : PagamentoStatus.PENDING;
+        : PagamentoStatus.PENDING;
 
   const pagamentoAtualizado = await prisma.pagamentoPremium.update({
     where: { id: pagamento.id },

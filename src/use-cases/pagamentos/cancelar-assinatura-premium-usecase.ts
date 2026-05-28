@@ -36,38 +36,22 @@ export class CancelarAssinaturaPremiumUseCase {
       orderBy: { criadoEm: "desc" },
     });
 
-    if (assinatura?.mercadoPagoPreapprovalId) {
-      const preapproval = await mercadoPagoPreapproval.cancel(
-        assinatura.mercadoPagoPreapprovalId,
-      );
-
-      await prisma.pagamentoPremium.update({
-        where: { id: assinatura.id },
-        data: {
-          status: "CANCELLED",
-          assinaturaStatus: preapproval.status ?? "canceled",
-          canceladoEm: new Date(),
-        },
-      });
-    } else {
-      const ultimoPagamento = await prisma.pagamentoPremium.findFirst({
-        where: {
-          usuarioId,
-          status: "APPROVED",
-        },
-        orderBy: { criadoEm: "desc" },
-      });
-
-      if (ultimoPagamento) {
-        await prisma.pagamentoPremium.update({
-          where: { id: ultimoPagamento.id },
-          data: {
-            status: "CANCELLED",
-            canceladoEm: new Date(),
-          },
-        });
-      }
+    if (!assinatura?.mercadoPagoPreapprovalId) {
+      throw new AssinaturaPremiumNaoEncontradaError();
     }
+
+    const preapproval = await mercadoPagoPreapproval.cancel(
+      assinatura.mercadoPagoPreapprovalId,
+    );
+
+    await prisma.pagamentoPremium.update({
+      where: { id: assinatura.id },
+      data: {
+        status: "CANCELLED",
+        assinaturaStatus: preapproval.status ?? "canceled",
+        canceladoEm: new Date(),
+      },
+    });
 
     const usuario = await prisma.usuario.update({
       where: { id: usuarioId },
