@@ -44,11 +44,12 @@ export class MercadoPagoRequestError extends Error {
 async function mercadoPagoRequest<T>(
   path: string,
   options: RequestInit = {},
+  token = env.MERCADO_PAGO_ACCESS_TOKEN,
 ): Promise<T> {
   const response = await fetch(`https://api.mercadopago.com${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${env.MERCADO_PAGO_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
     },
@@ -62,22 +63,32 @@ async function mercadoPagoRequest<T>(
   return response.json() as Promise<T>;
 }
 
+// Usa MERCADO_PAGO_SUBSCRIPTION_TOKEN se configurado, senão cai no token principal.
+const subscriptionToken = () =>
+  env.MERCADO_PAGO_SUBSCRIPTION_TOKEN ?? env.MERCADO_PAGO_ACCESS_TOKEN;
+
 export const mercadoPagoPreapproval = {
   create(body: PreapprovalPayload) {
-    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>("/preapproval", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>(
+      "/preapproval",
+      { method: "POST", body: JSON.stringify(body) },
+      subscriptionToken(),
+    );
   },
 
   get(id: string) {
-    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>(`/preapproval/${id}`);
+    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>(
+      `/preapproval/${id}`,
+      {},
+      subscriptionToken(),
+    );
   },
 
   cancel(id: string) {
-    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>(`/preapproval/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ status: "canceled" }),
-    });
+    return mercadoPagoRequest<MercadoPagoPreapprovalResponse>(
+      `/preapproval/${id}`,
+      { method: "PUT", body: JSON.stringify({ status: "canceled" }) },
+      subscriptionToken(),
+    );
   },
 };

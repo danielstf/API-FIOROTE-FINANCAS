@@ -18,6 +18,7 @@ const envSchema = z.object({
   ),
   APP_URL: urlWithoutTrailingSlash.default("http://localhost:3333"),
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
+  MERCADO_PAGO_SUBSCRIPTION_TOKEN: z.string().optional(),
   MERCADO_PAGO_PAYER_EMAIL: z.string().email().optional(),
   MERCADO_PAGO_WEBHOOK_SECRET: z.string().optional().default(""),
   PREMIUM_MONTHLY_PRICE: z.coerce.number().positive().default(8),

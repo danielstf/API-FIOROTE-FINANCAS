@@ -58,6 +58,16 @@ export async function criarCheckoutPremiumController(
       );
 
       if (
+        error.statusCode === 403 &&
+        error.responseBody.includes("PA_UNAUTHORIZED_RESULT_FROM_POLICIES")
+      ) {
+        return reply.status(503).send({
+          message:
+            "O recurso de assinaturas nao esta habilitado nesta conta do Mercado Pago. Ative em: Seu negocio → Assinaturas.",
+        });
+      }
+
+      if (
         error.statusCode === 400 &&
         error.responseBody.includes("Both payer and collector must be real or test users")
       ) {
