@@ -15,6 +15,7 @@ interface CriarCheckoutPremiumUseCaseRequest {
   premiumRecurringPrice: number;
   mercadoPagoAccessToken: string;
   mercadoPagoPayerEmail?: string;
+  mercadoPagoPreapprovalPlanId?: string;
 }
 
 export class UsuarioNaoEncontradoError extends Error {
@@ -47,6 +48,7 @@ export class CriarCheckoutPremiumUseCase {
     premiumRecurringPrice,
     mercadoPagoAccessToken,
     mercadoPagoPayerEmail,
+    mercadoPagoPreapprovalPlanId,
   }: CriarCheckoutPremiumUseCaseRequest) {
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
@@ -143,20 +145,31 @@ export class CriarCheckoutPremiumUseCase {
       };
     }
 
-    const preapproval = await mercadoPagoPreapproval.create({
-      reason: "Plano Premium Fiorote Financas",
-      external_reference: pagamento.externalReference,
-      payer_email: payerEmail,
-      back_url: `${frontendUrl}/premium/sucesso`,
-      notification_url: `${appUrl}/webhooks/mercado-pago`,
-      status: "pending",
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: "months",
-        transaction_amount: premiumPrice,
-        currency_id: "BRL",
-      },
-    });
+    const preapproval = await mercadoPagoPreapproval.create(
+      mercadoPagoPreapprovalPlanId
+        ? {
+            preapproval_plan_id: mercadoPagoPreapprovalPlanId,
+            external_reference: pagamento.externalReference,
+            payer_email: payerEmail,
+            back_url: `${frontendUrl}/premium/sucesso`,
+            notification_url: `${appUrl}/webhooks/mercado-pago`,
+            status: "pending",
+          }
+        : {
+            reason: "Plano Premium Fiorote Financas",
+            external_reference: pagamento.externalReference,
+            payer_email: payerEmail,
+            back_url: `${frontendUrl}/premium/sucesso`,
+            notification_url: `${appUrl}/webhooks/mercado-pago`,
+            status: "pending",
+            auto_recurring: {
+              frequency: 1,
+              frequency_type: "months",
+              transaction_amount: premiumPrice,
+              currency_id: "BRL",
+            },
+          },
+    );
 
     const checkoutUrl = preapproval.init_point ?? preapproval.sandbox_init_point;
 

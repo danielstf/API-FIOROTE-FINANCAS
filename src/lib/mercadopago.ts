@@ -9,13 +9,14 @@ export const mercadoPagoPreference = new Preference(mercadoPagoClient);
 export const mercadoPagoPayment = new Payment(mercadoPagoClient);
 
 type PreapprovalPayload = {
-  reason: string;
+  preapproval_plan_id?: string;
+  reason?: string;
   external_reference: string;
   payer_email: string;
   back_url: string;
   notification_url: string;
   status: "pending" | "authorized" | "paused" | "canceled";
-  auto_recurring: {
+  auto_recurring?: {
     frequency: number;
     frequency_type: "days" | "months";
     transaction_amount: number;

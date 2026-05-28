@@ -33,6 +33,7 @@ export async function criarCheckoutPremiumController(
       premiumRecurringPrice: env.PREMIUM_RECURRING_PRICE,
       mercadoPagoAccessToken: env.MERCADO_PAGO_ACCESS_TOKEN,
       mercadoPagoPayerEmail: env.MERCADO_PAGO_PAYER_EMAIL,
+      mercadoPagoPreapprovalPlanId: env.MERCADO_PAGO_PREAPPROVAL_PLAN_ID,
     });
 
     return reply.status(201).send(checkout);
