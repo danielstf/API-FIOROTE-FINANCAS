@@ -65,8 +65,13 @@ export async function webhookMercadoPagoController(
   }
 
   // Consulta o recurso no Mercado Pago e aplica o resultado no banco local.
-  const processarWebhookMercadoPago = new ProcessarWebhookMercadoPagoUseCase();
-  await processarWebhookMercadoPago.execute({ resourceId, resourceType });
+  // Sempre retorna 200 para o MercadoPago nao reenviar o evento indefinidamente.
+  try {
+    const processarWebhookMercadoPago = new ProcessarWebhookMercadoPagoUseCase();
+    await processarWebhookMercadoPago.execute({ resourceId, resourceType });
+  } catch (error) {
+    console.error("Erro ao processar webhook do MercadoPago:", error);
+  }
 
   return reply.status(200).send({ received: true });
 }
