@@ -51,19 +51,29 @@ export async function criarCheckoutPremiumController(
       return reply.status(400).send({ message: error.message });
     }
 
-    if (
-      error instanceof MercadoPagoRequestError &&
-      error.statusCode === 400 &&
-      error.responseBody.includes("Both payer and collector must be real or test users")
-    ) {
-      return reply.status(400).send({
-        message:
-          "As credenciais e o usuario do Mercado Pago precisam ser ambos de teste ou ambos reais.",
+    if (error instanceof MercadoPagoRequestError) {
+      console.error(
+        `Erro MercadoPago ao criar checkout [${error.statusCode}]:`,
+        error.responseBody,
+      );
+
+      if (
+        error.statusCode === 400 &&
+        error.responseBody.includes("Both payer and collector must be real or test users")
+      ) {
+        return reply.status(400).send({
+          message:
+            "As credenciais e o usuario do Mercado Pago precisam ser ambos de teste ou ambos reais.",
+        });
+      }
+
+      return reply.status(502).send({
+        message: "Erro ao se comunicar com o Mercado Pago",
+        detail: error.responseBody,
       });
     }
 
-    // Falhas nao previstas nao expõem detalhes internos ao cliente.
-    console.error("Erro ao criar checkout premium:", error);
+    console.error("Erro inesperado ao criar checkout premium:", error);
     return reply.status(500).send({ message: "Erro ao criar checkout premium" });
   }
 }
