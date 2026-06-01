@@ -1,14 +1,19 @@
+/// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach } from "vitest";
-import request from "supertest";
+import { vi } from "vitest";
 import { app } from "../../app";
 import { prisma } from "../../lib/prisma";
-import { vi } from "vitest";
 import {
   createUserToken,
   bearerHeader,
   mockValidSession,
+  TEST_PREMIUM_USER_ID,
 } from "../helpers/auth";
-import { mockUser, mockPremiumUser, mockPerfil, TEST_PREMIUM_USER_ID } from "../helpers/factories";
+import { mockUser, mockPremiumUser, mockPerfil } from "../helpers/factories";
+
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const inject = (method: Method, url: string, opts?: { body?: unknown; headers?: Record<string, string> }) =>
+  app.inject({ method, url, headers: opts?.headers, payload: opts?.body as Record<string, unknown> });
 
 describe("Perfis Financeiros", () => {
   let token: string;
@@ -20,135 +25,109 @@ describe("Perfis Financeiros", () => {
     premiumToken = createUserToken(TEST_PREMIUM_USER_ID);
   });
 
-  // ─── GET /perfis ──────────────────────────────────────────────────────────────
   describe("GET /perfis", () => {
-    it("deve listar perfis do usuário premium", async () => {
+    it("deve listar perfis (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.findMany).mockResolvedValue([mockPerfil]);
 
-      const res = await request(app.server)
-        .get("/perfis")
-        .set(bearerHeader(premiumToken));
-
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      const res = await inject("GET", "/perfis", { headers: bearerHeader(premiumToken) });
+      expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.json())).toBe(true);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).get("/perfis");
-      expect(res.status).toBe(401);
+      const res = await inject("GET", "/perfis");
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── POST /perfis ─────────────────────────────────────────────────────────────
   describe("POST /perfis", () => {
-    it("deve criar um perfil financeiro para usuário premium", async () => {
+    it("deve criar um perfil para usuário premium (201)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.create).mockResolvedValue(mockPerfil);
 
-      const res = await request(app.server)
-        .post("/perfis")
-        .set(bearerHeader(premiumToken))
-        .send({ nome: "Perfil Pessoal" });
-
-      expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty("nome");
+      const res = await inject("POST", "/perfis", {
+        headers: bearerHeader(premiumToken),
+        body: { nome: "Perfil Pessoal" },
+      });
+      expect(res.statusCode).toBe(201);
     });
 
     it("deve retornar 403 para usuário sem premium", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
 
-      const res = await request(app.server)
-        .post("/perfis")
-        .set(bearerHeader(token))
-        .send({ nome: "Perfil" });
-
-      expect(res.status).toBe(403);
+      const res = await inject("POST", "/perfis", {
+        headers: bearerHeader(token),
+        body: { nome: "Perfil" },
+      });
+      expect(res.statusCode).toBe(403);
     });
 
-    it("deve retornar 400 se o nome estiver ausente", async () => {
-      const res = await request(app.server)
-        .post("/perfis")
-        .set(bearerHeader(premiumToken))
-        .send({});
-
-      expect(res.status).toBe(400);
+    it("deve retornar 400 sem nome", async () => {
+      const res = await inject("POST", "/perfis", {
+        headers: bearerHeader(premiumToken),
+        body: {},
+      });
+      expect(res.statusCode).toBe(400);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server)
-        .post("/perfis")
-        .send({ nome: "Perfil" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("POST", "/perfis", { body: { nome: "Perfil" } });
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── PUT /perfis/:perfilId ────────────────────────────────────────────────────
   describe("PUT /perfis/:perfilId", () => {
-    it("deve editar um perfil financeiro", async () => {
-      const perfilAtualizado = { ...mockPerfil, nome: "Perfil Atualizado" };
+    it("deve editar um perfil (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.findFirst).mockResolvedValue(mockPerfil);
-      vi.mocked(prisma.perfilFinanceiro.update).mockResolvedValue(perfilAtualizado);
+      vi.mocked(prisma.perfilFinanceiro.update).mockResolvedValue({ ...mockPerfil, nome: "Atualizado" });
 
-      const res = await request(app.server)
-        .put(`/perfis/${mockPerfil.id}`)
-        .set(bearerHeader(premiumToken))
-        .send({ nome: "Perfil Atualizado" });
-
-      expect(res.status).toBe(200);
+      const res = await inject("PUT", `/perfis/${mockPerfil.id}`, {
+        headers: bearerHeader(premiumToken),
+        body: { nome: "Atualizado" },
+      });
+      expect(res.statusCode).toBe(200);
     });
 
-    it("deve retornar 404 se o perfil não existir", async () => {
+    it("deve retornar 404 se não existir", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server)
-        .put("/perfis/id-inexistente")
-        .set(bearerHeader(premiumToken))
-        .send({ nome: "Novo Nome" });
-
-      expect(res.status).toBe(404);
+      const res = await inject("PUT", "/perfis/id-inexistente", {
+        headers: bearerHeader(premiumToken),
+        body: { nome: "Novo" },
+      });
+      expect(res.statusCode).toBe(404);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server)
-        .put(`/perfis/${mockPerfil.id}`)
-        .send({ nome: "Nome" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("PUT", `/perfis/${mockPerfil.id}`, { body: { nome: "Nome" } });
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── DELETE /perfis/:perfilId ─────────────────────────────────────────────────
   describe("DELETE /perfis/:perfilId", () => {
-    it("deve excluir um perfil financeiro", async () => {
+    it("deve excluir um perfil (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.findFirst).mockResolvedValue(mockPerfil);
       vi.mocked(prisma.perfilFinanceiro.delete).mockResolvedValue(mockPerfil);
 
-      const res = await request(app.server)
-        .delete(`/perfis/${mockPerfil.id}`)
-        .set(bearerHeader(premiumToken));
-
-      expect(res.status).toBe(200);
+      const res = await inject("DELETE", `/perfis/${mockPerfil.id}`, { headers: bearerHeader(premiumToken) });
+      expect(res.statusCode).toBe(200);
     });
 
-    it("deve retornar 404 se o perfil não existir", async () => {
+    it("deve retornar 404 se não existir", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockPremiumUser);
       vi.mocked(prisma.perfilFinanceiro.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server)
-        .delete("/perfis/id-inexistente")
-        .set(bearerHeader(premiumToken));
-
-      expect(res.status).toBe(404);
+      const res = await inject("DELETE", "/perfis/id-inexistente", { headers: bearerHeader(premiumToken) });
+      expect(res.statusCode).toBe(404);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).delete(`/perfis/${mockPerfil.id}`);
-      expect(res.status).toBe(401);
+      const res = await inject("DELETE", `/perfis/${mockPerfil.id}`);
+      expect(res.statusCode).toBe(401);
     });
   });
 });

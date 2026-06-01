@@ -1,8 +1,8 @@
+/// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach } from "vitest";
-import request from "supertest";
+import { vi } from "vitest";
 import { app } from "../../app";
 import { prisma } from "../../lib/prisma";
-import { vi } from "vitest";
 import {
   createUserToken,
   createAdminToken,
@@ -10,6 +10,10 @@ import {
   mockValidSession,
 } from "../helpers/auth";
 import { mockUser, mockAdmin, mockSugestao } from "../helpers/factories";
+
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const inject = (method: Method, url: string, opts?: { body?: unknown; headers?: Record<string, string> }) =>
+  app.inject({ method, url, headers: opts?.headers, payload: opts?.body as Record<string, unknown> });
 
 describe("Sugestões", () => {
   let userToken: string;
@@ -21,173 +25,129 @@ describe("Sugestões", () => {
     adminToken = createAdminToken();
   });
 
-  // ─── POST /sugestoes ──────────────────────────────────────────────────────────
   describe("POST /sugestoes", () => {
-    it("deve criar uma sugestão com sucesso", async () => {
+    it("deve criar uma sugestão (201)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
       vi.mocked(prisma.sugestao.create).mockResolvedValue(mockSugestao);
 
-      const res = await request(app.server)
-        .post("/sugestoes")
-        .set(bearerHeader(userToken))
-        .send({
-          descricao: "Seria legal ter exportação de relatórios em PDF",
-          titulo: "Exportação PDF",
-        });
-
-      expect(res.status).toBe(201);
+      const res = await inject("POST", "/sugestoes", {
+        headers: bearerHeader(userToken),
+        body: { tipo: "SUGESTAO", titulo: "PDF Export", mensagem: "Seria legal ter exportação PDF" },
+      });
+      expect(res.statusCode).toBe(201);
     });
 
-    it("deve criar sugestão sem título", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
-      vi.mocked(prisma.sugestao.create).mockResolvedValue(mockSugestao);
-
-      const res = await request(app.server)
-        .post("/sugestoes")
-        .set(bearerHeader(userToken))
-        .send({ descricao: "Uma sugestão sem título" });
-
-      expect(res.status).toBe(201);
-    });
-
-    it("deve retornar 400 se a descrição estiver ausente", async () => {
-      const res = await request(app.server)
-        .post("/sugestoes")
-        .set(bearerHeader(userToken))
-        .send({ titulo: "Título sem descrição" });
-
-      expect(res.status).toBe(400);
+    it("deve retornar 400 sem campos obrigatórios", async () => {
+      const res = await inject("POST", "/sugestoes", {
+        headers: bearerHeader(userToken),
+        body: { titulo: "Título" }, // faltam tipo e mensagem
+      });
+      expect(res.statusCode).toBe(400);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server)
-        .post("/sugestoes")
-        .send({ descricao: "Sugestão" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("POST", "/sugestoes", {
+        body: { tipo: "SUGESTAO", titulo: "Título", mensagem: "Mensagem" },
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── GET /sugestoes (ADMIN) ───────────────────────────────────────────────────
-  describe("GET /sugestoes", () => {
-    it("deve listar sugestões para admin", async () => {
+  describe("GET /sugestoes (ADMIN)", () => {
+    it("deve listar sugestões para admin (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockAdmin);
       vi.mocked(prisma.sugestao.findMany).mockResolvedValue([mockSugestao]);
 
-      const res = await request(app.server)
-        .get("/sugestoes")
-        .set(bearerHeader(adminToken));
-
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      const res = await inject("GET", "/sugestoes", { headers: bearerHeader(adminToken) });
+      expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.json())).toBe(true);
     });
 
     it("deve retornar 403 para usuário comum", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
 
-      const res = await request(app.server)
-        .get("/sugestoes")
-        .set(bearerHeader(userToken));
-
-      expect(res.status).toBe(403);
+      const res = await inject("GET", "/sugestoes", { headers: bearerHeader(userToken) });
+      expect(res.statusCode).toBe(403);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).get("/sugestoes");
-      expect(res.status).toBe(401);
+      const res = await inject("GET", "/sugestoes");
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── PATCH /sugestoes/:sugestaoId/finalizar (ADMIN) ──────────────────────────
-  describe("PATCH /sugestoes/:sugestaoId/finalizar", () => {
-    it("deve finalizar uma sugestão como admin", async () => {
-      const sugestaoFinalizada = {
-        ...mockSugestao,
-        status: "CONCLUIDA",
-      };
+  describe("PATCH /sugestoes/:sugestaoId/finalizar (ADMIN)", () => {
+    it("deve finalizar uma sugestão (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockAdmin);
       vi.mocked(prisma.sugestao.findFirst).mockResolvedValue(mockSugestao);
-      vi.mocked(prisma.sugestao.update).mockResolvedValue(
-        sugestaoFinalizada as any,
-      );
+      vi.mocked(prisma.sugestao.update).mockResolvedValue({ ...mockSugestao, status: "CONCLUIDO" });
 
-      const res = await request(app.server)
-        .patch(`/sugestoes/${mockSugestao.id}/finalizar`)
-        .set(bearerHeader(adminToken));
-
-      expect(res.status).toBe(200);
+      const res = await inject("PATCH", `/sugestoes/${mockSugestao.id}/finalizar`, {
+        headers: bearerHeader(adminToken),
+      });
+      expect(res.statusCode).toBe(200);
     });
 
     it("deve retornar 403 para usuário comum", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
 
-      const res = await request(app.server)
-        .patch(`/sugestoes/${mockSugestao.id}/finalizar`)
-        .set(bearerHeader(userToken));
-
-      expect(res.status).toBe(403);
+      const res = await inject("PATCH", `/sugestoes/${mockSugestao.id}/finalizar`, {
+        headers: bearerHeader(userToken),
+      });
+      expect(res.statusCode).toBe(403);
     });
 
     it("deve retornar 404 se a sugestão não existir", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockAdmin);
       vi.mocked(prisma.sugestao.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server)
-        .patch("/sugestoes/id-inexistente/finalizar")
-        .set(bearerHeader(adminToken));
-
-      expect(res.status).toBe(404);
+      const res = await inject("PATCH", "/sugestoes/id-inexistente/finalizar", {
+        headers: bearerHeader(adminToken),
+      });
+      expect(res.statusCode).toBe(404);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).patch(
-        `/sugestoes/${mockSugestao.id}/finalizar`,
-      );
-
-      expect(res.status).toBe(401);
+      const res = await inject("PATCH", `/sugestoes/${mockSugestao.id}/finalizar`);
+      expect(res.statusCode).toBe(401);
     });
   });
 
-  // ─── DELETE /sugestoes/:sugestaoId (ADMIN) ────────────────────────────────────
-  describe("DELETE /sugestoes/:sugestaoId", () => {
-    it("deve excluir uma sugestão como admin", async () => {
+  describe("DELETE /sugestoes/:sugestaoId (ADMIN)", () => {
+    it("deve excluir uma sugestão (200)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockAdmin);
       vi.mocked(prisma.sugestao.findFirst).mockResolvedValue(mockSugestao);
       vi.mocked(prisma.sugestao.delete).mockResolvedValue(mockSugestao);
 
-      const res = await request(app.server)
-        .delete(`/sugestoes/${mockSugestao.id}`)
-        .set(bearerHeader(adminToken));
-
-      expect(res.status).toBe(200);
+      const res = await inject("DELETE", `/sugestoes/${mockSugestao.id}`, {
+        headers: bearerHeader(adminToken),
+      });
+      expect(res.statusCode).toBe(200);
     });
 
     it("deve retornar 403 para usuário comum", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
 
-      const res = await request(app.server)
-        .delete(`/sugestoes/${mockSugestao.id}`)
-        .set(bearerHeader(userToken));
-
-      expect(res.status).toBe(403);
+      const res = await inject("DELETE", `/sugestoes/${mockSugestao.id}`, {
+        headers: bearerHeader(userToken),
+      });
+      expect(res.statusCode).toBe(403);
     });
 
-    it("deve retornar 404 se a sugestão não existir", async () => {
+    it("deve retornar 404 se não existir", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockAdmin);
       vi.mocked(prisma.sugestao.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server)
-        .delete("/sugestoes/id-inexistente")
-        .set(bearerHeader(adminToken));
-
-      expect(res.status).toBe(404);
+      const res = await inject("DELETE", "/sugestoes/id-inexistente", {
+        headers: bearerHeader(adminToken),
+      });
+      expect(res.statusCode).toBe(404);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).delete(
-        `/sugestoes/${mockSugestao.id}`,
-      );
-      expect(res.status).toBe(401);
+      const res = await inject("DELETE", `/sugestoes/${mockSugestao.id}`);
+      expect(res.statusCode).toBe(401);
     });
   });
 });

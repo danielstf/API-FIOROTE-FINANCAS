@@ -1,14 +1,14 @@
+/// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach } from "vitest";
-import request from "supertest";
+import { vi } from "vitest";
 import { app } from "../../app";
 import { prisma } from "../../lib/prisma";
-import { vi } from "vitest";
-import {
-  createUserToken,
-  bearerHeader,
-  mockValidSession,
-} from "../helpers/auth";
+import { createUserToken, bearerHeader, mockValidSession } from "../helpers/auth";
 import { mockUser } from "../helpers/factories";
+
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const inject = (method: Method, url: string, opts?: { body?: unknown; headers?: Record<string, string> }) =>
+  app.inject({ method, url, headers: opts?.headers, payload: opts?.body as Record<string, unknown> });
 
 describe("Dashboard", () => {
   let token: string;
@@ -16,55 +16,35 @@ describe("Dashboard", () => {
   beforeEach(() => {
     mockValidSession();
     token = createUserToken();
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+    vi.mocked(prisma.receita.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.despesa.findMany).mockResolvedValue([]);
   });
 
-  // ─── GET /dashboard/resumo-financeiro ─────────────────────────────────────────
   describe("GET /dashboard/resumo-financeiro", () => {
-    beforeEach(() => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
-      vi.mocked(prisma.receita.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.despesa.findMany).mockResolvedValue([]);
-    });
-
-    it("deve retornar o resumo financeiro do mês atual", async () => {
-      const res = await request(app.server)
-        .get("/dashboard/resumo-financeiro")
-        .set(bearerHeader(token));
-
-      expect(res.status).toBe(200);
-      expect(res.body).toBeDefined();
+    it("deve retornar resumo financeiro (200)", async () => {
+      const res = await inject("GET", "/dashboard/resumo-financeiro", { headers: bearerHeader(token) });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toBeDefined();
     });
 
     it("deve aceitar filtro por mês e ano", async () => {
-      const res = await request(app.server)
-        .get("/dashboard/resumo-financeiro?mes=5&ano=2024")
-        .set(bearerHeader(token));
-
-      expect(res.status).toBe(200);
-    });
-
-    it("deve aceitar filtro apenas por mês", async () => {
-      const res = await request(app.server)
-        .get("/dashboard/resumo-financeiro?mes=3")
-        .set(bearerHeader(token));
-
-      expect(res.status).toBe(200);
+      const res = await inject("GET", "/dashboard/resumo-financeiro?mes=5&ano=2024", {
+        headers: bearerHeader(token),
+      });
+      expect(res.statusCode).toBe(200);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).get(
-        "/dashboard/resumo-financeiro",
-      );
-
-      expect(res.status).toBe(401);
+      const res = await inject("GET", "/dashboard/resumo-financeiro");
+      expect(res.statusCode).toBe(401);
     });
 
-    it("deve retornar 401 com token inválido", async () => {
-      const res = await request(app.server)
-        .get("/dashboard/resumo-financeiro")
-        .set({ Authorization: "Bearer token-invalido-xyz" });
-
-      expect(res.status).toBe(401);
+    it("deve retornar 401 com token malformado", async () => {
+      const res = await inject("GET", "/dashboard/resumo-financeiro", {
+        headers: { Authorization: "Bearer token-invalido-xyz" },
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 });

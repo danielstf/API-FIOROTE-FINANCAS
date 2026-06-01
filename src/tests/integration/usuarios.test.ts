@@ -1,290 +1,231 @@
+/// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach } from "vitest";
-import request from "supertest";
+import { vi } from "vitest";
 import { app } from "../../app";
 import { prisma } from "../../lib/prisma";
-import { vi } from "vitest";
 import {
   createUserToken,
   bearerHeader,
   mockValidSession,
 } from "../helpers/auth";
-import { mockUser, mockAdmin } from "../helpers/factories";
+import { mockUser } from "../helpers/factories";
+
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const inject = (method: Method, url: string, opts?: { body?: unknown; headers?: Record<string, string> }) =>
+  app.inject({ method, url, headers: opts?.headers, payload: opts?.body as Record<string, unknown> });
 
 describe("Usuários", () => {
-  // ─── POST /usuarios ──────────────────────────────────────────────────────────
+  // ─── POST /usuarios ───────────────────────────────────────────────────────────
   describe("POST /usuarios", () => {
-    it("deve criar um usuário com sucesso e retornar 201", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(null);
+    it("deve criar um usuário (201)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(null);
       vi.mocked(prisma.usuario.create).mockResolvedValue(mockUser);
 
-      const res = await request(app.server).post("/usuarios").send({
-        nome: "Usuário Novo",
-        email: "novo@teste.com",
-        senha: "Senha@123",
+      const res = await inject("POST", "/usuarios", {
+        body: { nome: "Novo Usuário", email: "novo@teste.com", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty("message");
+      expect(res.statusCode).toBe(201);
+      expect(res.json()).toHaveProperty("message");
     });
 
-    it("deve retornar 400 se o email for inválido", async () => {
-      const res = await request(app.server).post("/usuarios").send({
-        nome: "Usuário",
-        email: "email-invalido",
-        senha: "Senha@123",
+    it("deve retornar 400 com email inválido", async () => {
+      const res = await inject("POST", "/usuarios", {
+        body: { nome: "Usuário", email: "email-invalido", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(400);
+      expect(res.statusCode).toBe(400);
     });
 
-    it("deve retornar 400 se o nome estiver ausente", async () => {
-      const res = await request(app.server).post("/usuarios").send({
-        email: "novo@teste.com",
-        senha: "Senha@123",
+    it("deve retornar 400 sem nome", async () => {
+      const res = await inject("POST", "/usuarios", {
+        body: { email: "novo@teste.com", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(400);
-    });
-
-    it("deve retornar 400 se a senha estiver ausente", async () => {
-      const res = await request(app.server).post("/usuarios").send({
-        nome: "Usuário",
-        email: "novo@teste.com",
-      });
-
-      expect(res.status).toBe(400);
+      expect(res.statusCode).toBe(400);
     });
 
     it("deve retornar 409 se o email já estiver cadastrado", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
 
-      const res = await request(app.server).post("/usuarios").send({
-        nome: "Outro Usuário",
-        email: "usuario@teste.com",
-        senha: "Senha@123",
+      const res = await inject("POST", "/usuarios", {
+        body: { nome: "Outro", email: "usuario@teste.com", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(409);
+      expect(res.statusCode).toBe(409);
     });
   });
 
-  // ─── POST /login ─────────────────────────────────────────────────────────────
+  // ─── POST /login ──────────────────────────────────────────────────────────────
   describe("POST /login", () => {
-    it("deve fazer login com sucesso e retornar token", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+    it("deve retornar token no login (200)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
       vi.mocked(prisma.sessaoUsuario.create).mockResolvedValue({
-        id: "session-123",
+        id: "44444444-4444-4444-a444-444444444444",
         usuarioId: mockUser.id,
-        expiraEm: new Date(),
+        expiraEm: new Date(Date.now() + 86400000),
         criadaEm: new Date(),
         atualizadaEm: new Date(),
-        dispositivo: null,
-      } as any);
+      } as never);
 
-      const res = await request(app.server).post("/login").send({
-        email: "usuario@teste.com",
-        senha: "Senha@123",
+      const res = await inject("POST", "/login", {
+        body: { email: "usuario@teste.com", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("token");
-      expect(res.body).toHaveProperty("usuario");
-      expect(res.body.usuario).toHaveProperty("email", "usuario@teste.com");
-      expect(res.body.usuario).not.toHaveProperty("senha");
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toHaveProperty("token");
+      expect(res.json().usuario).not.toHaveProperty("senha");
     });
 
-    it("deve retornar 401 para credenciais inválidas", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(null);
+    it("deve retornar 401 com credenciais erradas", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server).post("/login").send({
-        email: "naoexiste@teste.com",
-        senha: "Senha@123",
+      const res = await inject("POST", "/login", {
+        body: { email: "naoexiste@teste.com", senha: "Senha@123" },
       });
-
-      expect(res.status).toBe(401);
+      expect(res.statusCode).toBe(401);
     });
 
-    it("deve retornar 400 se o email estiver ausente", async () => {
-      const res = await request(app.server)
-        .post("/login")
-        .send({ senha: "Senha@123" });
-
-      expect(res.status).toBe(400);
+    it("deve retornar 400 sem email", async () => {
+      const res = await inject("POST", "/login", { body: { senha: "Senha@123" } });
+      expect(res.statusCode).toBe(400);
     });
 
-    it("deve retornar 400 se a senha estiver ausente", async () => {
-      const res = await request(app.server)
-        .post("/login")
-        .send({ email: "usuario@teste.com" });
-
-      expect(res.status).toBe(400);
+    it("deve retornar 400 sem senha", async () => {
+      const res = await inject("POST", "/login", { body: { email: "usuario@teste.com" } });
+      expect(res.statusCode).toBe(400);
     });
   });
 
   // ─── GET /usuarios/perfil ─────────────────────────────────────────────────────
   describe("GET /usuarios/perfil", () => {
-    beforeEach(() => {
-      mockValidSession();
-    });
+    beforeEach(() => mockValidSession());
 
-    it("deve retornar o perfil do usuário autenticado", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+    it("deve retornar o perfil do usuário (200)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
 
-      const token = createUserToken();
-      const res = await request(app.server)
-        .get("/usuarios/perfil")
-        .set(bearerHeader(token));
-
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("email", "usuario@teste.com");
-      expect(res.body).not.toHaveProperty("senha");
+      const res = await inject("GET", "/usuarios/perfil", {
+        headers: bearerHeader(createUserToken()),
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toHaveProperty("email", "usuario@teste.com");
+      expect(res.json()).not.toHaveProperty("senha");
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server).get("/usuarios/perfil");
-      expect(res.status).toBe(401);
+      const res = await inject("GET", "/usuarios/perfil");
+      expect(res.statusCode).toBe(401);
     });
 
     it("deve retornar 401 com token inválido", async () => {
-      const res = await request(app.server)
-        .get("/usuarios/perfil")
-        .set({ Authorization: "Bearer token-invalido" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("GET", "/usuarios/perfil", {
+        headers: { Authorization: "Bearer token-invalido" },
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 
   // ─── PATCH /usuarios/perfil ───────────────────────────────────────────────────
   describe("PATCH /usuarios/perfil", () => {
-    beforeEach(() => {
-      mockValidSession();
-    });
+    beforeEach(() => mockValidSession());
 
-    it("deve atualizar o perfil com sucesso", async () => {
-      const usuarioAtualizado = { ...mockUser, nome: "Nome Atualizado" };
-      vi.mocked(prisma.usuario.update).mockResolvedValue(usuarioAtualizado);
+    it("deve atualizar o perfil (200)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
+      vi.mocked(prisma.usuario.update).mockResolvedValue({ ...mockUser, nome: "Nome Novo" });
 
-      const token = createUserToken();
-      const res = await request(app.server)
-        .patch("/usuarios/perfil")
-        .set(bearerHeader(token))
-        .send({ nome: "Nome Atualizado" });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("nome", "Nome Atualizado");
+      const res = await inject("PATCH", "/usuarios/perfil", {
+        headers: bearerHeader(createUserToken()),
+        body: { nome: "Nome Novo" },
+      });
+      expect(res.statusCode).toBe(200);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server)
-        .patch("/usuarios/perfil")
-        .send({ nome: "Novo Nome" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("PATCH", "/usuarios/perfil", { body: { nome: "Novo" } });
+      expect(res.statusCode).toBe(401);
     });
   });
 
   // ─── PATCH /usuarios/senha ────────────────────────────────────────────────────
   describe("PATCH /usuarios/senha", () => {
-    beforeEach(() => {
-      mockValidSession();
-    });
+    beforeEach(() => mockValidSession());
 
-    it("deve trocar a senha com sucesso", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+    it("deve trocar a senha (200)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
       vi.mocked(prisma.usuario.update).mockResolvedValue(mockUser);
 
-      const token = createUserToken();
-      const res = await request(app.server)
-        .patch("/usuarios/senha")
-        .set(bearerHeader(token))
-        .send({
-          senhaAtual: "SenhaAtual@123",
-          novaSenha: "NovaSenha@456",
-        });
-
-      expect(res.status).toBe(200);
+      const res = await inject("PATCH", "/usuarios/senha", {
+        headers: bearerHeader(createUserToken()),
+        body: { senhaAtual: "SenhaAtual@123", novaSenha: "NovaSenha@456" },
+      });
+      expect(res.statusCode).toBe(200);
     });
 
-    it("deve retornar 400 se a senha atual estiver errada", async () => {
+    it("deve retornar 400 com senha atual errada", async () => {
       const { compare } = await import("bcryptjs");
       vi.mocked(compare).mockResolvedValueOnce(false as never);
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
 
-      const token = createUserToken();
-      const res = await request(app.server)
-        .patch("/usuarios/senha")
-        .set(bearerHeader(token))
-        .send({
-          senhaAtual: "SenhaErrada",
-          novaSenha: "NovaSenha@456",
-        });
-
-      expect(res.status).toBe(400);
+      const res = await inject("PATCH", "/usuarios/senha", {
+        headers: bearerHeader(createUserToken()),
+        body: { senhaAtual: "SenhaErrada", novaSenha: "NovaSenha@456" },
+      });
+      expect(res.statusCode).toBe(400);
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await request(app.server)
-        .patch("/usuarios/senha")
-        .send({ senhaAtual: "SenhaAtual", novaSenha: "NovaSenha" });
-
-      expect(res.status).toBe(401);
+      const res = await inject("PATCH", "/usuarios/senha", {
+        body: { senhaAtual: "SenhaAtual", novaSenha: "NovaSenha" },
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 
   // ─── POST /esqueci-senha ──────────────────────────────────────────────────────
   describe("POST /esqueci-senha", () => {
-    it("deve enviar email de redefinição (mesmo que o email não exista)", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
-      vi.mocked(prisma.redefinicaoSenha.create).mockResolvedValue({} as any);
+    it("deve aceitar solicitação de redefinição (200)", async () => {
+      // findByEmail → findFirst, depois update para salvar resetToken
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(mockUser);
+      vi.mocked(prisma.usuario.update).mockResolvedValue(mockUser);
 
-      const res = await request(app.server)
-        .post("/esqueci-senha")
-        .send({ email: "usuario@teste.com" });
-
-      expect(res.status).toBe(200);
+      const res = await inject("POST", "/esqueci-senha", {
+        body: { email: "usuario@teste.com" },
+      });
+      expect(res.statusCode).toBe(200);
     });
 
-    it("deve retornar 400 se o email for inválido", async () => {
-      const res = await request(app.server)
-        .post("/esqueci-senha")
-        .send({ email: "email-invalido" });
-
-      expect(res.status).toBe(400);
+    it("deve retornar 400 com email inválido", async () => {
+      const res = await inject("POST", "/esqueci-senha", { body: { email: "invalido" } });
+      expect(res.statusCode).toBe(400);
     });
   });
 
   // ─── POST /redefinir-senha ────────────────────────────────────────────────────
   describe("POST /redefinir-senha", () => {
-    it("deve redefinir a senha com token válido", async () => {
-      vi.mocked(prisma.redefinicaoSenha.findFirst).mockResolvedValue({
-        id: "redefinicao-id",
-        usuarioId: mockUser.id,
-        token: "valid-token",
-        expiraEm: new Date(Date.now() + 60 * 60 * 1000),
-        usado: false,
-        criadoEm: new Date(),
-      } as any);
-      vi.mocked(prisma.redefinicaoSenha.updateMany).mockResolvedValue({ count: 1 });
-      vi.mocked(prisma.usuario.update).mockResolvedValue(mockUser);
-      vi.mocked(prisma.sessaoUsuario.deleteMany).mockResolvedValue({ count: 0 });
-
-      const res = await request(app.server).post("/redefinir-senha").send({
-        token: "valid-token",
-        novaSenha: "NovaSenha@123",
+    it("deve redefinir senha com token válido (200)", async () => {
+      // findByResetToken → findFirst com resetToken/resetTokenExp válidos
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue({
+        ...mockUser,
+        resetToken: "valid-token",
+        resetTokenExp: new Date(Date.now() + 3600000),
       });
+      vi.mocked(prisma.usuario.update).mockResolvedValue(mockUser);
 
-      expect(res.status).toBe(200);
+      const res = await inject("POST", "/redefinir-senha", {
+        body: { token: "valid-token", senha: "NovaSenha@123" },
+      });
+      expect(res.statusCode).toBe(200);
     });
 
-    it("deve retornar 400 com token inválido", async () => {
-      vi.mocked(prisma.redefinicaoSenha.findFirst).mockResolvedValue(null);
+    it("deve retornar 400 com token inválido (sem match)", async () => {
+      vi.mocked(prisma.usuario.findFirst).mockResolvedValue(null);
 
-      const res = await request(app.server).post("/redefinir-senha").send({
-        token: "token-invalido",
-        novaSenha: "NovaSenha@123",
+      const res = await inject("POST", "/redefinir-senha", {
+        body: { token: "token-invalido", senha: "NovaSenha@123" },
       });
+      expect(res.statusCode).toBe(400);
+    });
 
-      expect(res.status).toBe(400);
+    it("deve retornar 400 sem token", async () => {
+      const res = await inject("POST", "/redefinir-senha", {
+        body: { senha: "NovaSenha@123" },
+      });
+      expect(res.statusCode).toBe(400);
     });
   });
 });

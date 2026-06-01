@@ -1,7 +1,33 @@
-import { vi, beforeAll, afterAll, beforeEach } from "vitest";
+/// <reference types="vitest/globals" />
 
-// ─── Mocks de módulos externos (hoistados antes de qualquer import) ───────────
+// ─── Rate limit: desabilitado em testes ──────────────────────────────────────
+vi.mock("@fastify/rate-limit", () => ({
+  default: async function noopRateLimit() {},
+}));
 
+// ─── env deve ser o PRIMEIRO mock ────────────────────────────────────────────
+vi.mock("../env/index", () => ({
+  env: {
+    PORT: 3334,
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test_db",
+    NODE_ENV: "test",
+    JWT_SECRET: "test-jwt-secret-must-be-long-enough-32chars",
+    RESEND_API_KEY: "re_test_key_123",
+    RESEND_FROM_EMAIL: "noreply@fiorote.com",
+    FRONTEND_URL: "http://localhost:3000",
+    APP_URL: "http://localhost:3334",
+    MERCADO_PAGO_ACCESS_TOKEN: "APP_USR-test-access-token-fake",
+    MERCADO_PAGO_SUBSCRIPTION_TOKEN: undefined,
+    MERCADO_PAGO_PREAPPROVAL_PLAN_ID: undefined,
+    MERCADO_PAGO_PAYER_EMAIL: undefined,
+    MERCADO_PAGO_WEBHOOK_SECRET: "test-webhook-secret",
+    PREMIUM_MONTHLY_PRICE: 8,
+    PREMIUM_RECURRING_PRICE: 5,
+    GOOGLE_CLIENT_ID: "test-google-client-id.apps.googleusercontent.com",
+  },
+}));
+
+// ─── Prisma (mock completo com todos os métodos usados no projeto) ────────────
 vi.mock("../lib/prisma", () => ({
   prisma: {
     usuario: {
@@ -17,8 +43,10 @@ vi.mock("../lib/prisma", () => ({
     sessaoUsuario: {
       create: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn(),
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
+      count: vi.fn(),
     },
     receita: {
       findMany: vi.fn(),
@@ -26,7 +54,9 @@ vi.mock("../lib/prisma", () => ({
       create: vi.fn(),
       createMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
       count: vi.fn(),
     },
     despesa: {
@@ -35,7 +65,9 @@ vi.mock("../lib/prisma", () => ({
       create: vi.fn(),
       createMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
       count: vi.fn(),
     },
     cartaoCredito: {
@@ -43,14 +75,18 @@ vi.mock("../lib/prisma", () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     sugestao: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
       count: vi.fn(),
     },
     perfilFinanceiro: {
@@ -58,20 +94,40 @@ vi.mock("../lib/prisma", () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
       count: vi.fn(),
     },
     pagamentoPremium: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
-    redefinicaoSenha: {
+    // Nota: reset de senha usa campos do próprio modelo Usuario (resetToken, resetTokenExp)
+    categoria: {
+      findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
-      updateMany: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    receitaExcecaoRecorrencia: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      createMany: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    despesaExcecaoRecorrencia: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      createMany: vi.fn(),
+      delete: vi.fn(),
       deleteMany: vi.fn(),
     },
     $disconnect: vi.fn(),
@@ -79,6 +135,7 @@ vi.mock("../lib/prisma", () => ({
   },
 }));
 
+// ─── Serviços externos ────────────────────────────────────────────────────────
 vi.mock("../lib/resend", () => ({
   resend: {
     emails: {
@@ -117,10 +174,7 @@ vi.mock("../lib/mercadopago", () => ({
       external_reference: "ext-ref-123",
       next_payment_date: null,
     }),
-    cancel: vi.fn().mockResolvedValue({
-      id: "preapproval-123",
-      status: "canceled",
-    }),
+    cancel: vi.fn().mockResolvedValue({ id: "preapproval-123", status: "canceled" }),
   },
   MercadoPagoRequestError: class MercadoPagoRequestError extends Error {
     statusCode: number;
@@ -140,13 +194,14 @@ vi.mock("../lib/mercadopago-webhook", () => ({
 vi.mock("google-auth-library", () => ({
   OAuth2Client: vi.fn().mockImplementation(() => ({
     verifyIdToken: vi.fn().mockResolvedValue({
-      getPayload: () => ({
-        sub: "google-sub-123",
-        email: "google@example.com",
-        name: "Google User",
-      }),
+      getPayload: () => ({ sub: "google-sub-123", email: "google@example.com", name: "Google User" }),
     }),
   })),
+}));
+
+vi.mock("../lib/premium-access", () => ({
+  bloquearUsuarioSemPremium: vi.fn().mockResolvedValue(false),
+  bloquearRecursoPremiumSeNecessario: vi.fn().mockResolvedValue(false),
 }));
 
 vi.mock("bcryptjs", () => ({
@@ -158,15 +213,14 @@ vi.mock("bcryptjs", () => ({
   },
 }));
 
-// ─── Ciclo de vida da aplicação ───────────────────────────────────────────────
-
-import { app } from "../app";
-
+// ─── Ciclo de vida ────────────────────────────────────────────────────────────
 beforeAll(async () => {
-  await app.listen({ port: 0 });
+  const { app } = await import("../app");
+  await app.ready();
 });
 
 afterAll(async () => {
+  const { app } = await import("../app");
   await app.close();
 });
 
