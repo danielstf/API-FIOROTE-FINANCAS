@@ -1,4 +1,6 @@
-import pdfParse from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const _pdfMod = require('pdf-parse');
+const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = _pdfMod.default ?? _pdfMod;
 
 export type FaturaItem = {
   nome: string;
