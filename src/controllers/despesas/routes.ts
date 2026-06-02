@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { JWTVerify } from "../../middlewares/jwt-verify";
 import { alterarPagamentoDespesaController } from "./alterar-pagamento-despesa-controller";
+import { analisarFaturaController } from "./analisar-fatura-controller";
 import { criarDespesaController } from "./criar-despesa-controller";
 import { editarDespesaController } from "./editar-despesa-controller";
 import { excluirDespesaController } from "./excluir-despesa-controller";
@@ -9,6 +10,15 @@ import { listarOpcoesDespesaController } from "./listar-opcoes-despesa-controlle
 import { obterDespesaController } from "./obter-despesa-controller";
 
 export function despesasRoutes(app: FastifyInstance) {
+  // Analisa o texto de uma fatura PDF e retorna os itens extraídos.
+  app.post(
+    "/despesas/analisar-fatura",
+    {
+      preHandler: [JWTVerify],
+    },
+    analisarFaturaController,
+  );
+
   // Opcoes padrao para categoria e forma de pagamento da despesa.
   app.get(
     "/despesas/opcoes",

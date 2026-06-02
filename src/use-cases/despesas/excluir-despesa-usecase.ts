@@ -1,6 +1,6 @@
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { DespesaNaoEncontradaError } from "./obter-despesa-usecase";
-import { criarDataDoMes, mesAtualOuFuturo, OperacaoEmMesPassadoError } from "../receitas/receita-mes";
+import { criarDataDoMes } from "../receitas/receita-mes";
 
 interface ExcluirDespesaUseCaseRequest {
   usuarioId: string;
@@ -31,21 +31,6 @@ export class ExcluirDespesaUseCase {
     }
 
     const excluirTodas = escopo === "todas" || excluirParcelas;
-
-    // Despesa fixa: valida o mes alvo (parametro ou mesReferencia da despesa).
-    if (despesa.fixa) {
-      const mesAlvo = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
-      if (!mesAtualOuFuturo(mesAlvo)) {
-        throw new OperacaoEmMesPassadoError();
-      }
-    }
-
-    // Despesa parcelada: valida pelo mesReferencia do proprio registro.
-    if (!despesa.fixa && despesa.parcelamentoId) {
-      if (!mesAtualOuFuturo(new Date(despesa.mesReferencia))) {
-        throw new OperacaoEmMesPassadoError();
-      }
-    }
 
     if (despesa.fixa && !excluirTodas) {
       await this.despesaRepository.createExcecaoRecorrencia(
