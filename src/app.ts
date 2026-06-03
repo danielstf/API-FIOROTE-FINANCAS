@@ -14,6 +14,7 @@ import { dashboardRoutes } from "./controllers/dashboard/routes";
 import { sugestoesRoutes } from "./controllers/sugestoes/routes";
 import { perfisRoutes } from "./controllers/perfis/routes";
 import { adminRoutes } from "./controllers/admin/routes";
+import { pushTokensRoutes } from "./controllers/push-tokens/routes";
 
 export const app = fastify();
 
@@ -121,3 +122,4 @@ app.register(dashboardRoutes);
 app.register(sugestoesRoutes);
 app.register(perfisRoutes);
 app.register(adminRoutes);
+app.register(pushTokensRoutes);

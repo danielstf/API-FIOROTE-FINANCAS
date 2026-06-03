@@ -29,6 +29,7 @@ model Usuario {
   receitasExcecoesRecorrencia ReceitaExcecaoRecorrencia[]
   sessoes                     SessaoUsuario[]
   sugestoes                   Sugestao[]
+  pushTokens                  PushToken[]
 }
 
 model SessaoUsuario {
@@ -249,4 +250,15 @@ enum SugestaoTipo {
   ELOGIO
   SUGESTAO
   OUTRO
+}
+
+model PushToken {
+  id           String   @id @default(uuid())
+  usuarioId    String
+  token        String   @unique
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
 }
