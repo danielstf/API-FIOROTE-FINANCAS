@@ -9,6 +9,8 @@ import {
 } from "../pagamentos/premium-validade";
 import { somarMeses } from "../receitas/receita-mes";
 import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despesa-dados";
+import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
+export { UsuarioNaoEncontradoError };
 
 interface CriarDespesaUseCaseRequest {
   usuarioId: string;
@@ -22,12 +24,6 @@ interface CriarDespesaUseCaseRequest {
   dataVencimento?: string | null;
   fixa?: boolean;
   numeroParcelas?: number;
-}
-
-export class UsuarioNaoEncontradoError extends Error {
-  constructor() {
-    super("Usuário não encontrado.");
-  }
 }
 
 export class CartaoObrigatorioError extends Error {

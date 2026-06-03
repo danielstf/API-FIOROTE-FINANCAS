@@ -17,11 +17,8 @@ interface CriarReceitaUseCaseRequest {
   numeroParcelas?: number;
 }
 
-export class UsuarioNaoEncontradoError extends Error {
-  constructor() {
-    super("Usuário não encontrado.");
-  }
-}
+import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
+export { UsuarioNaoEncontradoError };
 
 export class PlanoPremiumObrigatorioError extends Error {
   constructor() {

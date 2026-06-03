@@ -1,6 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const _pdfMod = require('pdf-parse');
-const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = _pdfMod.default ?? _pdfMod;
+import OpenAI from 'openai';
+
+function parsePdf(buffer: Buffer): Promise<{ text: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
+  return (require('pdf-parse') as any)(buffer);
+}
 
 export type FaturaItem = {
   nome: string;
@@ -9,85 +12,73 @@ export type FaturaItem = {
   totalParcelas?: number;
 };
 
-const reDataInicio =
-  /^(\d{1,2}[/.-]\d{2}(?:[/.-]\d{2,4})?\s+|\d{1,2}\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\s*(?:\d{2,4})?\s+)/i;
+async function analisarTextoComOpenAI(texto: string): Promise<FaturaItem[]> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const reValorFim = /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})\s*$/;
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    temperature: 0,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: `Você é um especialista em análise de faturas de cartão de crédito brasileiras.
+Analise o texto extraído de uma fatura e retorne APENAS as despesas/compras realizadas.
 
-const reParcelamento =
-  /\b(?:parc(?:ela)?\s*)?(\d{1,2})\s*(?:[/]|de)\s*(\d{1,2})\b/i;
-
-const excluirDescricao =
-  /^(pagamento|pago|paga|estorno|crédito|credito|devolução|devolucao|reembolso|ajuste|cash\s*back|cashback|saque|juro|encargo|iof|anuidade|tarifa|taxa|multa|mora|saldo|débito\s*autom|debito\s*autom|parcelamento\s*fatura|fatura\s*anterior)/i;
-
-function parsearTextoFatura(texto: string): FaturaItem[] {
-  const linhas = texto
-    .split(/[\n\r]+/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 4);
-
-  const itens: FaturaItem[] = [];
-
-  for (const linha of linhas) {
-    const matchData = linha.match(reDataInicio);
-    if (!matchData) continue;
-
-    const matchValor = linha.match(reValorFim);
-    if (!matchValor) continue;
-
-    const posValor = linha.lastIndexOf(matchValor[1]);
-    const sufixo = linha.slice(posValor + matchValor[1].length).trim();
-    const prefixo = linha.slice(Math.max(0, posValor - 2), posValor).trim();
-    if (/cr/i.test(sufixo) || prefixo === '-') continue;
-
-    const valorStr = matchValor[1].replace(/\./g, '').replace(',', '.');
-    const valor = parseFloat(valorStr);
-    if (isNaN(valor) || valor <= 0 || valor > 50000) continue;
-
-    const semData = linha.slice(matchData[0].length).trim();
-    let nome = semData
-      .slice(0, semData.lastIndexOf(matchValor[1]))
-      .replace(/\s*R\$\s*$/, '')
-      .replace(/^R\$\s*/, '')
-      .trim();
-
-    if (excluirDescricao.test(nome)) continue;
-    if (/\blimite\b|\bdisponível\b|\bdisponivel\b/i.test(nome)) continue;
-
-    const matchParc = nome.match(reParcelamento);
-    let parcelaAtual: number | undefined;
-    let totalParcelas: number | undefined;
-
-    if (matchParc) {
-      const pa = parseInt(matchParc[1]);
-      const pt = parseInt(matchParc[2]);
-      if (pa >= 1 && pt > 1 && pa <= pt) {
-        parcelaAtual = pa;
-        totalParcelas = pt;
-        nome = nome.replace(matchParc[0], '').replace(/\s+/g, ' ').trim();
-      }
+Retorne um JSON com exatamente este formato:
+{
+  "itens": [
+    {
+      "nome": "Nome do estabelecimento ou produto",
+      "valor": 99.90,
+      "parcelaAtual": 3,
+      "totalParcelas": 12
     }
+  ]
+}
 
-    nome = nome.replace(/\s+/g, ' ').trim();
-    if (!nome || nome.length < 3) continue;
-    if (/^\d{1,2}[/.-]\d{2}$/.test(nome) || /^\d+$/.test(nome)) continue;
-    if (/^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(nome)) continue;
+Regras obrigatórias:
+- Inclua SOMENTE compras e despesas (débitos).
+- Exclua: pagamentos recebidos, créditos, estornos, cashback, IOF, anuidade, encargos, juros, taxas, saldo anterior, limite, totais, subtotais e linhas de cabeçalho.
+- O campo "valor" deve ser número decimal positivo (ex: 149.90).
+- "parcelaAtual" e "totalParcelas" são opcionais — inclua somente quando a transação for claramente parcelada (ex: "03/12" = parcelaAtual 3, totalParcelas 12).
+- Retorne SOMENTE o JSON, sem texto adicional.`,
+      },
+      {
+        role: 'user',
+        content: texto.slice(0, 28000),
+      },
+    ],
+  });
 
-    itens.push({ nome, valor, parcelaAtual, totalParcelas });
-  }
+  const content = completion.choices[0].message.content ?? '{"itens":[]}';
+  const parsed = JSON.parse(content);
 
-  return itens.filter(
-    (item, i, arr) =>
-      arr.findIndex(
-        (a) =>
-          a.nome === item.nome &&
-          Math.abs(a.valor - item.valor) < 0.01 &&
-          a.parcelaAtual === item.parcelaAtual,
-      ) === i,
-  );
+  if (!Array.isArray(parsed.itens)) return [];
+
+  return parsed.itens
+    .filter(
+      (item: any) =>
+        typeof item.nome === 'string' &&
+        item.nome.length >= 2 &&
+        typeof item.valor === 'number' &&
+        item.valor > 0 &&
+        item.valor < 100000,
+    )
+    .map((item: any) => ({
+      nome: String(item.nome).trim(),
+      valor: Number(item.valor),
+      parcelaAtual: item.parcelaAtual ? Number(item.parcelaAtual) : undefined,
+      totalParcelas: item.totalParcelas ? Number(item.totalParcelas) : undefined,
+    }));
 }
 
 export async function extrairItensFatura(pdfBuffer: Buffer): Promise<FaturaItem[]> {
-  const result = await pdfParse(pdfBuffer);
-  return parsearTextoFatura(result.text);
+  const { text } = await parsePdf(pdfBuffer);
+
+  if (!text || text.trim().length < 20) {
+    throw new Error('PDF sem texto legível — pode ser uma imagem escaneada.');
+  }
+
+  return analisarTextoComOpenAI(text);
 }

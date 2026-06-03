@@ -10,11 +10,8 @@ interface AtualizarPerfilUseCaseResponse {
   usuario: Usuario;
 }
 
-export class UsuarioNaoEncontradoError extends Error {
-  constructor() {
-    super("Usuário não encontrado.");
-  }
-}
+import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
+export { UsuarioNaoEncontradoError };
 
 export class AtualizarPerfilUseCase {
   constructor(private usuarioRepository: UsuarioRepositoryInterface) {}

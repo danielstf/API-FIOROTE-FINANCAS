@@ -18,11 +18,8 @@ interface CriarCheckoutPremiumUseCaseRequest {
   mercadoPagoPreapprovalPlanId?: string;
 }
 
-export class UsuarioNaoEncontradoError extends Error {
-  constructor() {
-    super("Usuário não encontrado.");
-  }
-}
+import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
+export { UsuarioNaoEncontradoError };
 
 export class UsuarioJaPremiumError extends Error {
   constructor() {
