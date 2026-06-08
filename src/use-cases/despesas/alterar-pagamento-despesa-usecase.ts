@@ -10,6 +10,12 @@ interface AlterarPagamentoDespesaUseCaseRequest {
   mes?: string;
 }
 
+export class MesObrigatorioParaDespesaFixaError extends Error {
+  constructor() {
+    super("O campo mes e obrigatorio para alterar o pagamento de uma despesa recorrente");
+  }
+}
+
 export class AlterarPagamentoDespesaUseCase {
   constructor(private despesaRepository: DespesaRepositoryInterface) {}
 
@@ -19,7 +25,6 @@ export class AlterarPagamentoDespesaUseCase {
     paga,
     mes,
   }: AlterarPagamentoDespesaUseCaseRequest) {
-    // O clique no icone de pagamento muda o status de paga/pendente.
     const despesaExistente = await this.despesaRepository.findByIdAndUsuario(
       despesaId,
       usuarioId,
@@ -29,7 +34,14 @@ export class AlterarPagamentoDespesaUseCase {
       throw new DespesaNaoEncontradaError();
     }
 
-    if (despesaExistente.fixa && mes) {
+    // Despesa recorrente: nunca alterar o registro original diretamente, pois
+    // isso propagaria o status de pago para todos os meses. Sempre isolar via
+    // excecao + copia avulsa restrita ao mes selecionado.
+    if (despesaExistente.fixa) {
+      if (!mes) {
+        throw new MesObrigatorioParaDespesaFixaError();
+      }
+
       const mesReferencia = criarDataDoMes(mes);
       const diferencaMeses =
         (mesReferencia.getFullYear() - despesaExistente.mesReferencia.getFullYear()) *

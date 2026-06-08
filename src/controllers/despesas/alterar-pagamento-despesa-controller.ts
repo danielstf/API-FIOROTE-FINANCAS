@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeAlterarPagamentoDespesaFactory } from "../../factory/despesas-factory/alterar-pagamento-despesa-factory";
+import { MesObrigatorioParaDespesaFixaError } from "../../use-cases/despesas/alterar-pagamento-despesa-usecase";
 import { DespesaNaoEncontradaError } from "../../use-cases/despesas/obter-despesa-usecase";
 
 const alterarPagamentoParamsSchema = z.object({
@@ -34,6 +35,10 @@ export async function alterarPagamentoDespesaController(
   } catch (error) {
     if (error instanceof DespesaNaoEncontradaError) {
       return reply.status(404).send({ message: error.message });
+    }
+
+    if (error instanceof MesObrigatorioParaDespesaFixaError) {
+      return reply.status(400).send({ message: error.message });
     }
 
     console.error("Erro ao alterar pagamento da despesa:", error);

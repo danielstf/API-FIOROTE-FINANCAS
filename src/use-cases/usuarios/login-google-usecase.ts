@@ -4,7 +4,7 @@ import { env } from "../../env";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
 import {
   atualizarPremiumExpirado,
-  calcularPremiumExpiraEm,
+  calcularTrialExpiraEm,
 } from "../pagamentos/premium-validade";
 
 interface LoginGoogleUseCaseRequest {
@@ -82,7 +82,7 @@ export class LoginGoogleUseCase {
       googleId,
       plano: "PREMIUM",
       exibirAnuncios: false,
-      premiumExpiraEm: calcularPremiumExpiraEm(),
+      premiumExpiraEm: calcularTrialExpiraEm(),
     });
 
     return {
