@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeCriarReceitaFactory } from "../../factory/receitas-factory/criar-receita-factory";
+import { buildStoreKey, checkIdempotency, storeIdempotency } from "../../lib/idempotency";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import { PlanoPremiumObrigatorioError, UsuarioNaoEncontradoError } from "../../use-cases/receitas/criar-receita-usecase";
 import { MesReceitaInvalidoError } from "../../use-cases/receitas/receita-mes";
@@ -23,6 +24,12 @@ export async function criarReceitaController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  const clientKey = request.headers['x-idempotency-key'] as string | undefined;
+  if (clientKey) {
+    const cached = checkIdempotency(buildStoreKey(request.user.sub, clientKey));
+    if (cached) return reply.status(cached.status).send(cached.body);
+  }
+
   const { nome, valor, mes, fixa, numeroParcelas } =
     criarReceitaBodySchema.parse(request.body);
 
@@ -39,6 +46,7 @@ export async function criarReceitaController(
       numeroParcelas,
     });
 
+    if (clientKey) storeIdempotency(buildStoreKey(request.user.sub, clientKey), 201, receita);
     return reply.status(201).send(receita);
   } catch (error) {
     if (error instanceof UsuarioNaoEncontradoError) {

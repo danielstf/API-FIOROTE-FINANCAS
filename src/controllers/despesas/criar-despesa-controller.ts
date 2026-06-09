@@ -2,6 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeCriarDespesaFactory } from "../../factory/despesas-factory/criar-despesa-factory";
+import { buildStoreKey, checkIdempotency, storeIdempotency } from "../../lib/idempotency";
 import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import {
   CartaoNaoEncontradoError,
@@ -45,6 +46,12 @@ export async function criarDespesaController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  const clientKey = request.headers['x-idempotency-key'] as string | undefined;
+  if (clientKey) {
+    const cached = checkIdempotency(buildStoreKey(request.user.sub, clientKey));
+    if (cached) return reply.status(cached.status).send(cached.body);
+  }
+
   const {
     nome,
     valor,
@@ -75,6 +82,7 @@ export async function criarDespesaController(
       numeroParcelas,
     });
 
+    if (clientKey) storeIdempotency(buildStoreKey(request.user.sub, clientKey), 201, despesa);
     return reply.status(201).send(despesa);
   } catch (error) {
     if (error instanceof UsuarioNaoEncontradoError) {
