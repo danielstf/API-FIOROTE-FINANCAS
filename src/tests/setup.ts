@@ -136,12 +136,8 @@ vi.mock("../lib/prisma", () => ({
 }));
 
 // ─── Serviços externos ────────────────────────────────────────────────────────
-vi.mock("../lib/resend", () => ({
-  resend: {
-    emails: {
-      send: vi.fn().mockResolvedValue({ data: { id: "email-id-123" }, error: null }),
-    },
-  },
+vi.mock("../lib/zeptomail", () => ({
+  sendEmail: vi.fn().mockResolvedValue({ message: "OK", data: [{ code: 200 }] }),
 }));
 
 vi.mock("../lib/mercadopago", () => ({

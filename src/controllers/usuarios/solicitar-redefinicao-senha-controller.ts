@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { env } from "../../env";
 import { makeSolicitarRedefinicaoSenhaFactory } from "../../factory/usuarios-factory/solicitar-redefinicao-senha-factory";
-import { resend } from "../../lib/resend";
+import { sendEmail } from "../../lib/zeptomail";
 
 export async function solicitarRedefinicaoSenhaController(
   request: FastifyRequest,
@@ -28,8 +28,7 @@ export async function solicitarRedefinicaoSenhaController(
     if (resetToken) {
       const resetUrl = `${env.FRONTEND_URL}/redefinir-senha?token=${resetToken}`;
 
-      const { data, error } = await resend.emails.send({
-        from: env.RESEND_FROM_EMAIL,
+      const result = await sendEmail({
         to: email,
         subject: "Redefinicao de senha",
         html: `
@@ -40,12 +39,7 @@ export async function solicitarRedefinicaoSenhaController(
         `,
       });
 
-      if (error) {
-        console.error("Erro retornado pelo Resend:", error);
-        throw new Error("Erro ao enviar email de redefinicao");
-      }
-
-      console.log("Email de redefinicao enviado pelo Resend:", data?.id);
+      console.log("Email de redefinicao enviado pelo ZeptoMail:", result);
     }
 
     return reply.status(200).send({

@@ -11,8 +11,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string(),
   NODE_ENV: z.enum(["dev", "test", "production"]).default("dev"),
   JWT_SECRET: z.string(),
-  RESEND_API_KEY: z.string(),
-  RESEND_FROM_EMAIL: z.string().email(),
+  ZEPTOMAIL_API_KEY: z.string(),
+  ZEPTOMAIL_FROM_EMAIL: z.string().email(),
   FRONTEND_URL: urlWithoutTrailingSlash.default(
     "https://front-fiorote-financas-production.up.railway.app",
   ),
