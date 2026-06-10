@@ -14,7 +14,7 @@ const envSchema = z.object({
   ZEPTOMAIL_API_KEY: z.string(),
   ZEPTOMAIL_FROM_EMAIL: z.string().email(),
   FRONTEND_URL: urlWithoutTrailingSlash.default(
-    "https://front-fiorote-financas-production.up.railway.app",
+    "https://www.fiorotecontrolefinanceiro.com.br",
   ),
   APP_URL: urlWithoutTrailingSlash.default("http://localhost:3333"),
   MERCADO_PAGO_ACCESS_TOKEN: z.string(),
