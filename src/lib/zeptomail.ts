@@ -8,10 +8,10 @@ type SendEmailParams = {
 };
 
 export async function sendEmail({ to, toName, subject, html }: SendEmailParams) {
-  const response = await fetch("https://api.zeptomail.in/v1.1/email", {
+  const response = await fetch("https://api.zeptomail.com/v1.1/email", {
     method: "POST",
     headers: {
-      Authorization: `Zoho-enczapikey ${env.ZEPTOMAIL_API_KEY}`,
+      Authorization: env.ZEPTOMAIL_API_KEY,
       "Content-Type": "application/json",
       Accept: "application/json",
     },

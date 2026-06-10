@@ -25,6 +25,8 @@ const allowedOrigins = new Set([
   "localhost:5176",
   env.FRONTEND_URL,
   "https://front-fiorote-financas-production.up.railway.app",
+  "https://fiorotecontrolefinanceiro.com.br",
+  "https://www.fiorotecontrolefinanceiro.com.br",
 ]);
 
 function isDevelopmentOrigin(origin: string) {
