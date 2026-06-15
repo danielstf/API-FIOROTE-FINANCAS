@@ -26,6 +26,7 @@ export interface CartaoRepositoryInterface {
   // Atualiza o nome do cartao.
   update(cartaoId: string, data: AtualizarCartaoData): Promise<CartaoCredito>;
 
-  // Exclui o cartao; despesas antigas ficam sem cartao por causa do onDelete SetNull.
+  // Soft delete: marca deletedAt sem remover o registro fisicamente.
+  // Despesas vinculadas permanecem intactas com a referencia ao cartao preservada.
   delete(cartaoId: string): Promise<void>;
 }

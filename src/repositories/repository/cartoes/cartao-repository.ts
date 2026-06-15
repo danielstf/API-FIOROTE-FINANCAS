@@ -22,20 +22,20 @@ export class CartaoRepository implements CartaoRepositoryInterface {
     return cartao;
   }
 
-  // Lista cartoes do usuario em ordem alfabetica.
+  // Lista apenas cartoes ativos (nao excluidos) em ordem alfabetica.
   async listByUsuario(
     usuarioId: string,
     perfilFinanceiroId?: string | null,
   ): Promise<CartaoCredito[]> {
     const cartoes = await prisma.cartaoCredito.findMany({
-      where: { usuarioId, perfilFinanceiroId: perfilFinanceiroId ?? null },
+      where: { usuarioId, perfilFinanceiroId: perfilFinanceiroId ?? null, deletedAt: null },
       orderBy: { nome: "asc" },
     });
 
     return cartoes;
   }
 
-  // Busca o cartao pelo id e pelo dono.
+  // Busca o cartao ativo pelo id e pelo dono.
   async findByIdAndUsuario(
     cartaoId: string,
     usuarioId: string,
@@ -46,13 +46,14 @@ export class CartaoRepository implements CartaoRepositoryInterface {
         id: cartaoId,
         usuarioId,
         perfilFinanceiroId: perfilFinanceiroId ?? null,
+        deletedAt: null,
       },
     });
 
     return cartao;
   }
 
-  // Busca cartao pelo nome para evitar cadastro duplicado.
+  // Busca cartao ativo pelo nome para evitar cadastro duplicado.
   async findByNomeAndUsuario(
     nome: string,
     usuarioId: string,
@@ -63,6 +64,7 @@ export class CartaoRepository implements CartaoRepositoryInterface {
         nome,
         usuarioId,
         perfilFinanceiroId: perfilFinanceiroId ?? null,
+        deletedAt: null,
       },
     });
 
@@ -79,10 +81,12 @@ export class CartaoRepository implements CartaoRepositoryInterface {
     return cartao;
   }
 
-  // Exclui o cartao pelo id.
+  // Soft delete: preserva o registro e todas as despesas vinculadas.
+  // O cartao desaparece das listagens mas continua referenciado historicamente.
   async delete(cartaoId: string): Promise<void> {
-    await prisma.cartaoCredito.delete({
+    await prisma.cartaoCredito.update({
       where: { id: cartaoId },
+      data: { deletedAt: new Date() },
     });
   }
 }

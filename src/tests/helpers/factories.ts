@@ -87,6 +87,7 @@ export const mockCartao = {
   perfilFinanceiroId: null as string | null,
   nome: "Nubank",
   criadoEm: new Date("2024-01-01"),
+  deletedAt: null as Date | null,
 };
 
 // ─── Sugestao (campos reais do schema) ───────────────────────────────────────

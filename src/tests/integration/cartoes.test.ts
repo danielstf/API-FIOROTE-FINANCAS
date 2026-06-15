@@ -118,9 +118,9 @@ describe("Cartões de Crédito", () => {
   });
 
   describe("DELETE /cartoes/:cartaoId", () => {
-    it("deve excluir um cartão (204)", async () => {
+    it("deve excluir um cartão (204) via soft delete", async () => {
       vi.mocked(prisma.cartaoCredito.findFirst).mockResolvedValue(mockCartao);
-      vi.mocked(prisma.cartaoCredito.delete).mockResolvedValue(mockCartao);
+      vi.mocked(prisma.cartaoCredito.update).mockResolvedValue({ ...mockCartao, deletedAt: new Date() });
 
       const res = await inject("DELETE", `/cartoes/${mockCartao.id}`, { headers: bearerHeader(token) });
       expect(res.statusCode).toBe(204);

@@ -173,14 +173,14 @@ model CartaoCredito {
   id                 String            @id @default(uuid())
   nome               String
   criadoEm           DateTime          @default(now())
+  deletedAt          DateTime?
   usuarioId          String
   perfilFinanceiroId String?
   perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
   usuario            Usuario           @relation(fields: [usuarioId], references: [id])
   despesas           Despesa[]
 
-  @@unique([usuarioId, nome, perfilFinanceiroId])
-  @@index([usuarioId, perfilFinanceiroId])
+  @@index([usuarioId, perfilFinanceiroId, deletedAt])
 }
 
 model Sugestao {
