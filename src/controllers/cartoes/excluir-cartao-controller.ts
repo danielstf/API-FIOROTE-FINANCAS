@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeExcluirCartaoFactory } from "../../factory/cartoes-factory/excluir-cartao-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import { CartaoNaoEncontradoError } from "../../use-cases/cartoes/cartao-dados";
 
 const excluirCartaoParamsSchema = z.object({
@@ -19,6 +20,7 @@ export async function excluirCartaoController(
     await excluirCartao.execute({
       usuarioId: request.user.sub,
       cartaoId,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
     });
 
     return reply.status(204).send();

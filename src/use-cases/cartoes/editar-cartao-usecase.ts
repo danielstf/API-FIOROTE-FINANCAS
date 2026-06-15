@@ -9,16 +9,18 @@ interface EditarCartaoUseCaseRequest {
   usuarioId: string;
   cartaoId: string;
   nome: string;
+  perfilFinanceiroId?: string | null;
 }
 
 export class EditarCartaoUseCase {
   constructor(private cartaoRepository: CartaoRepositoryInterface) {}
 
-  async execute({ usuarioId, cartaoId, nome }: EditarCartaoUseCaseRequest) {
-    // Garante que o cartao pertence ao usuario antes de alterar.
+  async execute({ usuarioId, cartaoId, nome, perfilFinanceiroId }: EditarCartaoUseCaseRequest) {
+    // Garante que o cartao pertence ao usuario (e ao perfil) antes de alterar.
     const cartaoExistente = await this.cartaoRepository.findByIdAndUsuario(
       cartaoId,
       usuarioId,
+      perfilFinanceiroId,
     );
 
     if (!cartaoExistente) {
@@ -26,8 +28,11 @@ export class EditarCartaoUseCase {
     }
 
     const nomeFormatado = nome.trim();
-    const cartaoComMesmoNome =
-      await this.cartaoRepository.findByNomeAndUsuario(nomeFormatado, usuarioId);
+    const cartaoComMesmoNome = await this.cartaoRepository.findByNomeAndUsuario(
+      nomeFormatado,
+      usuarioId,
+      perfilFinanceiroId,
+    );
 
     if (cartaoComMesmoNome && cartaoComMesmoNome.id !== cartaoId) {
       throw new CartaoJaExisteError();

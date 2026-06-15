@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 import { makeEditarCartaoFactory } from "../../factory/cartoes-factory/editar-cartao-factory";
+import { getPerfilFinanceiroId } from "../../lib/perfil-financeiro";
 import {
   CartaoJaExisteError,
   CartaoNaoEncontradoError,
@@ -28,6 +29,7 @@ export async function editarCartaoController(
       usuarioId: request.user.sub,
       cartaoId,
       nome,
+      perfilFinanceiroId: getPerfilFinanceiroId(request),
     });
 
     return reply.status(200).send(cartao);
