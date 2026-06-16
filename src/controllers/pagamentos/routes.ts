@@ -1,8 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { JWTVerify } from "../../middlewares/jwt-verify";
+import { ativarGooglePlayController } from "./ativar-google-play-controller";
 import { cancelarAssinaturaPremiumController } from "./cancelar-assinatura-premium-controller";
 import { consultarPremiumController } from "./consultar-premium-controller";
 import { criarCheckoutPremiumController } from "./criar-checkout-premium-controller";
+import { restaurarGooglePlayController } from "./restaurar-google-play-controller";
 import { webhookMercadoPagoController } from "./webhook-mercado-pago-controller";
 
 export function pagamentosRoutes(app: FastifyInstance) {
@@ -43,6 +45,30 @@ export function pagamentosRoutes(app: FastifyInstance) {
       },
     },
     cancelarAssinaturaPremiumController,
+  );
+
+  // Ativa premium apos compra confirmada pelo Google Play / RevenueCat.
+  app.post(
+    "/pagamentos/google-play/ativar",
+    {
+      preHandler: [JWTVerify],
+      config: {
+        rateLimit: { max: 10, timeWindow: "15 minutes" },
+      },
+    },
+    ativarGooglePlayController,
+  );
+
+  // Restaura premium apos o usuario confirmar compra anterior no RevenueCat.
+  app.post(
+    "/pagamentos/google-play/restaurar",
+    {
+      preHandler: [JWTVerify],
+      config: {
+        rateLimit: { max: 5, timeWindow: "15 minutes" },
+      },
+    },
+    restaurarGooglePlayController,
   );
 
   // Recebe notificacoes do Mercado Pago; nao usa JWT porque vem de sistema externo.
