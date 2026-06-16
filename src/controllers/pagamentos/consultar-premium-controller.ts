@@ -21,7 +21,6 @@ export async function consultarPremiumController(
     return reply.status(200).send({
       ...premium,
       precos: {
-        mensal: env.PREMIUM_MONTHLY_PRICE,
         recorrente: env.PREMIUM_RECURRING_PRICE,
       },
     });

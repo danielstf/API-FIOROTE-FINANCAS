@@ -10,7 +10,7 @@ import {
 } from "../../use-cases/pagamentos/criar-checkout-premium-usecase";
 
 const criarCheckoutPremiumBodySchema = z.object({
-  tipo: z.enum(["MENSAL", "RECORRENTE"]).optional().default("RECORRENTE"),
+  tipo: z.literal("RECORRENTE").optional().default("RECORRENTE"),
 });
 
 export async function criarCheckoutPremiumController(
@@ -29,7 +29,6 @@ export async function criarCheckoutPremiumController(
       appUrl: env.APP_URL,
       frontendUrl: env.FRONTEND_URL,
       tipo,
-      premiumMonthlyPrice: env.PREMIUM_MONTHLY_PRICE,
       premiumRecurringPrice: env.PREMIUM_RECURRING_PRICE,
       mercadoPagoAccessToken: env.MERCADO_PAGO_ACCESS_TOKEN,
       mercadoPagoPayerEmail: env.MERCADO_PAGO_PAYER_EMAIL,

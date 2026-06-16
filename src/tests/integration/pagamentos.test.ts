@@ -44,20 +44,6 @@ describe("Pagamentos Premium", () => {
   });
 
   describe("POST /pagamentos/premium/checkout", () => {
-    it("deve criar checkout MENSAL (201)", async () => {
-      vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
-      vi.mocked(prisma.pagamentoPremium.updateMany).mockResolvedValue({ count: 0 });
-      vi.mocked(prisma.pagamentoPremium.create).mockResolvedValue(mockPagamentoCheckout);
-      vi.mocked(prisma.pagamentoPremium.update).mockResolvedValue(mockPagamentoCheckout);
-
-      const res = await inject("POST", "/pagamentos/premium/checkout", {
-        headers: bearerHeader(token),
-        body: { tipo: "MENSAL" },
-      });
-      expect(res.statusCode).toBe(201);
-      expect(res.json()).toHaveProperty("checkoutUrl");
-    });
-
     it("deve criar checkout RECORRENTE (201)", async () => {
       vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUser);
       vi.mocked(prisma.pagamentoPremium.updateMany).mockResolvedValue({ count: 0 });
@@ -77,7 +63,7 @@ describe("Pagamentos Premium", () => {
 
       const res = await inject("POST", "/pagamentos/premium/checkout", {
         headers: bearerHeader(premiumToken),
-        body: { tipo: "MENSAL" },
+        body: { tipo: "RECORRENTE" },
       });
       expect(res.statusCode).toBe(409);
     });
@@ -104,7 +90,7 @@ describe("Pagamentos Premium", () => {
     });
 
     it("deve retornar 401 sem token", async () => {
-      const res = await inject("POST", "/pagamentos/premium/checkout", { body: { tipo: "MENSAL" } });
+      const res = await inject("POST", "/pagamentos/premium/checkout", { body: { tipo: "RECORRENTE" } });
       expect(res.statusCode).toBe(401);
     });
   });

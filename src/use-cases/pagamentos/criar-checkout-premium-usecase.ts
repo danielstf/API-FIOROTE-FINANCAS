@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../../lib/prisma";
-import { mercadoPagoPreapproval, mercadoPagoPreference } from "../../lib/mercadopago";
+import { mercadoPagoPreapproval } from "../../lib/mercadopago";
 import {
   atualizarPremiumExpirado,
   usuarioTemPremiumAtivo,
@@ -10,8 +10,7 @@ interface CriarCheckoutPremiumUseCaseRequest {
   usuarioId: string;
   appUrl: string;
   frontendUrl: string;
-  tipo: "MENSAL" | "RECORRENTE";
-  premiumMonthlyPrice: number;
+  tipo: "RECORRENTE";
   premiumRecurringPrice: number;
   mercadoPagoAccessToken: string;
   mercadoPagoPayerEmail?: string;
@@ -41,7 +40,6 @@ export class CriarCheckoutPremiumUseCase {
     appUrl,
     frontendUrl,
     tipo,
-    premiumMonthlyPrice,
     premiumRecurringPrice,
     mercadoPagoAccessToken,
     mercadoPagoPayerEmail,
@@ -62,9 +60,8 @@ export class CriarCheckoutPremiumUseCase {
       throw new UsuarioJaPremiumError();
     }
 
-    const pagamentoTipo = tipo === "RECORRENTE" ? "ASSINATURA" : "CHECKOUT";
-    const premiumPrice =
-      tipo === "RECORRENTE" ? premiumRecurringPrice : premiumMonthlyPrice;
+    const pagamentoTipo = "ASSINATURA";
+    const premiumPrice = premiumRecurringPrice;
 
     await prisma.pagamentoPremium.updateMany({
       where: {
@@ -92,55 +89,6 @@ export class CriarCheckoutPremiumUseCase {
         valor: premiumPrice,
       },
     });
-
-    if (tipo === "MENSAL") {
-      const preference = await mercadoPagoPreference.create({
-        body: {
-          external_reference: pagamento.externalReference,
-          notification_url: `${appUrl}/webhooks/mercado-pago`,
-          back_urls: {
-            success: `${frontendUrl}/premium/sucesso`,
-            pending: `${frontendUrl}/premium/pendente`,
-            failure: `${frontendUrl}/premium/falha`,
-          },
-          items: [
-            {
-              id: "premium-mensal",
-              title: "Plano Premium Mensal",
-              description: "Acesso mensal avulso ao Premium do Fiorote Financas",
-              quantity: 1,
-              currency_id: "BRL",
-              unit_price: premiumPrice,
-            },
-          ],
-          metadata: {
-            pagamentoId: pagamento.id,
-            usuarioId,
-            tipo: "MENSAL",
-          },
-        },
-      });
-
-      const checkoutUrl = preference.init_point ?? preference.sandbox_init_point;
-
-      await prisma.pagamentoPremium.update({
-        where: { id: pagamento.id },
-        data: {
-          mercadoPagoPreferenceId: preference.id,
-          checkoutUrl,
-        },
-      });
-
-      return {
-        pagamentoId: pagamento.id,
-        tipo,
-        valor: premiumPrice,
-        preferenceId: preference.id,
-        preapprovalId: null,
-        checkoutUrl,
-        sandboxCheckoutUrl: preference.sandbox_init_point,
-      };
-    }
 
     const preapproval = await mercadoPagoPreapproval.create(
       mercadoPagoPreapprovalPlanId
