@@ -74,4 +74,7 @@ export interface DespesaRepositoryInterface {
     usuarioId: string,
     mesReferencia: Date,
   ): Promise<void>;
+
+  // Exclui a despesa fixa e todas as suas excecoes de recorrencia.
+  deleteComExcecoes(despesaId: string): Promise<void>;
 }

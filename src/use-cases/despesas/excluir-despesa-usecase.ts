@@ -43,12 +43,23 @@ export class ExcluirDespesaUseCase {
 
     if (despesa.fixa && excluirTodas) {
       const mesAlvo = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
-      // Um dia antes do mês alvo garante que a renovação automática não re-estenda
-      // a data (renovarRecorrenciasFixas só toca registros com recorrenciaFim >= mesAtual)
-      // e que a despesa não apareça a partir do mês selecionado na query de listagem.
+      mesAlvo.setDate(1);
+      mesAlvo.setHours(0, 0, 0, 0);
+
+      const mesOrigem = new Date(despesa.mesReferencia);
+      mesOrigem.setDate(1);
+      mesOrigem.setHours(0, 0, 0, 0);
+
+      // Sem histórico anterior ao mês alvo → delete completo com limpeza de exceções.
+      if (mesAlvo <= mesOrigem) {
+        await this.despesaRepository.deleteComExcecoes(despesa.id);
+        return;
+      }
+
+      // Há meses anteriores com histórico → encerra a recorrência a partir do mês alvo,
+      // preservando os registros passados para fins de auditoria.
       const recorrenciaFim = new Date(mesAlvo);
       recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
-
       await this.despesaRepository.update(despesa.id, { recorrenciaFim, recorrenciaEncerrada: true });
       return;
     }

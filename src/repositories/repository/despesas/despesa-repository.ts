@@ -218,6 +218,14 @@ export class DespesaRepository implements DespesaRepositoryInterface {
     });
   }
 
+  // Exclui a despesa fixa e todas as suas excecoes de recorrencia em uma transacao.
+  async deleteComExcecoes(despesaId: string): Promise<void> {
+    await prisma.$transaction([
+      prisma.despesaExcecaoRecorrencia.deleteMany({ where: { despesaId } }),
+      prisma.despesa.delete({ where: { id: despesaId } }),
+    ]);
+  }
+
   // Oculta uma recorrencia fixa apenas no mes selecionado.
   async createExcecaoRecorrencia(
     despesaId: string,
