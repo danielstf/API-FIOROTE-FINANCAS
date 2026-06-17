@@ -1,6 +1,6 @@
 import { FormaPagamentoDespesa } from "@prisma/client";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
-import { formatarDespesa } from "./despesa-dados";
+import { despesaEstaVencida, formatarDespesa } from "./despesa-dados";
 import { criarIntervaloDoMes, formatarMesReceita } from "../receitas/receita-mes";
 
 interface ListarDespesasUseCaseRequest {
@@ -27,7 +27,6 @@ export class ListarDespesasUseCase {
     somenteVencidas,
     paga,
   }: ListarDespesasUseCaseRequest) {
-    // O filtro rapido de cartao sobrescreve a forma quando ativado.
     const filtroForma = somenteCartao
       ? FormaPagamentoDespesa.CARTAO_CREDITO
       : formaPagamento;
@@ -45,7 +44,25 @@ export class ListarDespesasUseCase {
       paga,
     });
 
-    const itens = despesas.map(formatarDespesa);
+    const [anoConsulta, mesNumConsulta] = mesConsulta.split("-").map(Number);
+
+    const itens = despesas.map((despesa) => {
+      const formatted = formatarDespesa(despesa);
+
+      // Para despesas fixas com vencimento, ajusta o dia para o mes consultado.
+      // O dia do vencimento (ex: dia 15) é preservado; só o mês/ano muda.
+      if (formatted.fixa && formatted.dataVencimento) {
+        const diaOriginal = new Date(formatted.dataVencimento).getDate();
+        const ultimoDiaDoMes = new Date(anoConsulta, mesNumConsulta, 0).getDate();
+        const diaAjustado = Math.min(diaOriginal, ultimoDiaDoMes);
+        const novoVencimento = new Date(anoConsulta, mesNumConsulta - 1, diaAjustado);
+        formatted.dataVencimento = novoVencimento;
+        formatted.vencida = despesaEstaVencida({ paga: formatted.paga, dataVencimento: novoVencimento });
+        formatted.alerta = formatted.vencida ? "Conta vencida" : null;
+      }
+
+      return formatted;
+    });
 
     return {
       despesas: itens,
