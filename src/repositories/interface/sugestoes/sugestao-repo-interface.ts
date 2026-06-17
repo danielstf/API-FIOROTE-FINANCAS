@@ -5,6 +5,7 @@ export type SugestaoComUsuario = Sugestao & {
     id: string;
     nome: string;
     email: string;
+    plano: string;
   };
 };
 
