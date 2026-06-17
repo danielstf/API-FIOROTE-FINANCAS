@@ -19,10 +19,6 @@ import { pushTokensRoutes } from "./controllers/push-tokens/routes";
 export const app = fastify();
 
 const allowedOrigins = new Set([
-  "http://localhost:5176",
-  "http://localhost:8083",
-  "http://localhost:19006",
-  "localhost:5176",
   env.FRONTEND_URL,
   "https://front-fiorote-financas-production.up.railway.app",
   "https://fiorotecontrolefinanceiro.com.br",
