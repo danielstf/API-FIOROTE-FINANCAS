@@ -197,6 +197,19 @@ model Sugestao {
   @@index([tipo, criadoEm])
 }
 
+model ContatoSuporte {
+  id        String       @id @default(uuid())
+  tipo      SugestaoTipo
+  titulo    String
+  mensagem  String
+  nome      String
+  email     String
+  status    String       @default("ABERTO")
+  criadoEm  DateTime     @default(now())
+
+  @@index([status, criadoEm])
+}
+
 model Categoria {
   id        String        @id @default(uuid())
   nome      String
