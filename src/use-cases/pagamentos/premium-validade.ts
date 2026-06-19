@@ -15,14 +15,6 @@ export function calcularPremiumExpiraEm(dataInicio = new Date()) {
   return premiumExpiraEm;
 }
 
-// Calcula a validade do trial gratuito para novos usuarios (7 dias).
-export function calcularTrialExpiraEm(dataInicio = new Date()) {
-  const trialExpiraEm = new Date(dataInicio);
-  trialExpiraEm.setDate(trialExpiraEm.getDate() + 7);
-
-  return trialExpiraEm;
-}
-
 // Confere se o usuario ainda possui premium valido na data atual.
 export function usuarioTemPremiumAtivo(
   usuario: Pick<UsuarioPremium, "plano" | "premiumExpiraEm">,

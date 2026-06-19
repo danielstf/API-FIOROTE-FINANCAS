@@ -2,10 +2,7 @@ import { OAuth2Client } from "google-auth-library";
 import { Usuario } from "@prisma/client";
 import { env } from "../../env";
 import { UsuarioRepositoryInterface } from "../../repositories/interface/usuarios/usuario-repo-interface";
-import {
-  atualizarPremiumExpirado,
-  calcularTrialExpiraEm,
-} from "../pagamentos/premium-validade";
+import { atualizarPremiumExpirado } from "../pagamentos/premium-validade";
 
 interface LoginGoogleUseCaseRequest {
   idToken: string;
@@ -80,9 +77,9 @@ export class LoginGoogleUseCase {
       email,
       nome: nome ?? email,
       googleId,
-      plano: "PREMIUM",
-      exibirAnuncios: false,
-      premiumExpiraEm: calcularTrialExpiraEm(),
+      plano: "FREE",
+      exibirAnuncios: true,
+      premiumExpiraEm: null,
     });
 
     return {
