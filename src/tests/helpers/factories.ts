@@ -86,6 +86,7 @@ export const mockCartao = {
   usuarioId: TEST_USER_ID,
   perfilFinanceiroId: null as string | null,
   nome: "Nubank",
+  cor: null as number | null,
   criadoEm: new Date("2024-01-01"),
   deletedAt: null as Date | null,
 };

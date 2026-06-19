@@ -172,6 +172,7 @@ model DespesaExcecaoRecorrencia {
 model CartaoCredito {
   id                 String            @id @default(uuid())
   nome               String
+  cor                Int?
   criadoEm           DateTime          @default(now())
   deletedAt          DateTime?
   usuarioId          String

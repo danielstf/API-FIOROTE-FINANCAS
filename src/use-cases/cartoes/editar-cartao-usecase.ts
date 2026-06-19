@@ -9,13 +9,14 @@ interface EditarCartaoUseCaseRequest {
   usuarioId: string;
   cartaoId: string;
   nome: string;
+  cor?: number | null;
   perfilFinanceiroId?: string | null;
 }
 
 export class EditarCartaoUseCase {
   constructor(private cartaoRepository: CartaoRepositoryInterface) {}
 
-  async execute({ usuarioId, cartaoId, nome, perfilFinanceiroId }: EditarCartaoUseCaseRequest) {
+  async execute({ usuarioId, cartaoId, nome, cor, perfilFinanceiroId }: EditarCartaoUseCaseRequest) {
     // Garante que o cartao pertence ao usuario (e ao perfil) antes de alterar.
     const cartaoExistente = await this.cartaoRepository.findByIdAndUsuario(
       cartaoId,
@@ -40,6 +41,7 @@ export class EditarCartaoUseCase {
 
     const cartao = await this.cartaoRepository.update(cartaoId, {
       nome: nomeFormatado,
+      cor,
     });
 
     return formatarCartao(cartao);

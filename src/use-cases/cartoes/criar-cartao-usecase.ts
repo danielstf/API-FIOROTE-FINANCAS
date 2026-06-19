@@ -6,6 +6,7 @@ interface CriarCartaoUseCaseRequest {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
   nome: string;
+  cor?: number | null;
 }
 
 import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
@@ -17,7 +18,7 @@ export class CriarCartaoUseCase {
     private usuarioRepository: UsuarioRepositoryInterface,
   ) {}
 
-  async execute({ usuarioId, perfilFinanceiroId, nome }: CriarCartaoUseCaseRequest) {
+  async execute({ usuarioId, perfilFinanceiroId, nome, cor }: CriarCartaoUseCaseRequest) {
     // Confere se o usuario existe antes de criar o cartao.
     const usuario = await this.usuarioRepository.findById(usuarioId);
 
@@ -40,6 +41,7 @@ export class CriarCartaoUseCase {
       usuarioId,
       perfilFinanceiroId,
       nome: nomeFormatado,
+      cor,
     });
 
     return formatarCartao(cartao);

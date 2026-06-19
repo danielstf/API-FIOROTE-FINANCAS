@@ -1,0 +1,1 @@
+ALTER TABLE "CartaoCredito" ADD COLUMN "cor" INTEGER;

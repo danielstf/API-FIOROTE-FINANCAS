@@ -5,6 +5,7 @@ export function formatarCartao(cartao: CartaoCredito) {
   return {
     id: cartao.id,
     nome: cartao.nome,
+    cor: cartao.cor ?? null,
     criadoEm: cartao.criadoEm,
   };
 }

@@ -8,15 +8,15 @@ import {
 import { UsuarioNaoEncontradoError } from "../../use-cases/cartoes/criar-cartao-usecase";
 
 const criarCartaoBodySchema = z.object({
-  // Nome que aparece no select de cartao, por exemplo Nubank.
   nome: z.string().trim().min(1, "O nome do cartao e obrigatorio"),
+  cor: z.number().int().min(0).optional().nullable(),
 });
 
 export async function criarCartaoController(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { nome } = criarCartaoBodySchema.parse(request.body);
+  const { nome, cor } = criarCartaoBodySchema.parse(request.body);
 
   try {
     const criarCartao = makeCriarCartaoFactory();
@@ -25,6 +25,7 @@ export async function criarCartaoController(
       usuarioId: request.user.sub,
       perfilFinanceiroId: getPerfilFinanceiroId(request),
       nome,
+      cor,
     });
 
     return reply.status(201).send(cartao);

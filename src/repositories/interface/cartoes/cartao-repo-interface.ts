@@ -4,10 +4,12 @@ interface CriarCartaoData {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
   nome: string;
+  cor?: number | null;
 }
 
 interface AtualizarCartaoData {
   nome: string;
+  cor?: number | null;
 }
 
 export interface CartaoRepositoryInterface {

@@ -13,6 +13,7 @@ const editarCartaoParamsSchema = z.object({
 
 const editarCartaoBodySchema = z.object({
   nome: z.string().trim().min(1, "O nome do cartao e obrigatorio"),
+  cor: z.number().int().min(0).optional().nullable(),
 });
 
 export async function editarCartaoController(
@@ -20,7 +21,7 @@ export async function editarCartaoController(
   reply: FastifyReply,
 ) {
   const { cartaoId } = editarCartaoParamsSchema.parse(request.params);
-  const { nome } = editarCartaoBodySchema.parse(request.body);
+  const { nome, cor } = editarCartaoBodySchema.parse(request.body);
 
   try {
     const editarCartao = makeEditarCartaoFactory();
@@ -29,6 +30,7 @@ export async function editarCartaoController(
       usuarioId: request.user.sub,
       cartaoId,
       nome,
+      cor,
       perfilFinanceiroId: getPerfilFinanceiroId(request),
     });
 
