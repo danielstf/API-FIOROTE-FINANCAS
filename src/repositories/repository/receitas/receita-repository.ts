@@ -173,9 +173,8 @@ async function renovarRecorrenciasFixas(
   usuarioId: string,
   perfilFinanceiroId?: string | null,
 ) {
-  const mesAtual = new Date();
-  mesAtual.setDate(1);
-  mesAtual.setHours(0, 0, 0, 0);
+  const agora = new Date();
+  const mesAtual = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1));
 
   const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
 
@@ -184,7 +183,7 @@ async function renovarRecorrenciasFixas(
   }
 
   const horizonte = new Date(mesAtual);
-  horizonte.setMonth(horizonte.getMonth() + 12);
+  horizonte.setUTCMonth(horizonte.getUTCMonth() + 12);
 
   await prisma.receita.updateMany({
     where: {

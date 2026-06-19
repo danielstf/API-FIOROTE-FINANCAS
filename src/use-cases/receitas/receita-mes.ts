@@ -16,14 +16,14 @@ export function criarDataDoMes(mes: string) {
     throw new MesReceitaInvalidoError();
   }
 
-  return new Date(ano, mesIndex, 1);
+  return new Date(Date.UTC(ano, mesIndex, 1));
 }
 
 // Cria o intervalo usado para filtrar receitas de um mes especifico.
 export function criarIntervaloDoMes(mes: string) {
   const inicio = criarDataDoMes(mes);
   const fim = new Date(inicio);
-  fim.setMonth(fim.getMonth() + 1);
+  fim.setUTCMonth(fim.getUTCMonth() + 1);
 
   return { inicio, fim };
 }
@@ -31,15 +31,15 @@ export function criarIntervaloDoMes(mes: string) {
 // Soma meses mantendo o dia 1, usado para gerar parcelas mensais.
 export function somarMeses(data: Date, quantidade: number) {
   const novaData = new Date(data);
-  novaData.setMonth(novaData.getMonth() + quantidade);
+  novaData.setUTCMonth(novaData.getUTCMonth() + quantidade);
 
   return novaData;
 }
 
 // Formata a data da receita de volta para YYYY-MM para facilitar o uso no frontend.
 export function formatarMesReceita(data: Date) {
-  const ano = data.getFullYear();
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const ano = data.getUTCFullYear();
+  const mes = String(data.getUTCMonth() + 1).padStart(2, "0");
 
   return `${ano}-${mes}`;
 }
@@ -57,8 +57,7 @@ export class OperacaoEmMesPassadoError extends Error {
 }
 
 export function mesAtualOuFuturo(data: Date): boolean {
-  const inicio = new Date();
-  inicio.setDate(1);
-  inicio.setHours(0, 0, 0, 0);
+  const agora = new Date();
+  const inicio = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1));
   return data >= inicio;
 }

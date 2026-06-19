@@ -53,12 +53,12 @@ export function criarMesReferencia(mes?: string | null, dataVencimento?: Date | 
   }
 
   if (dataVencimento) {
-    return new Date(dataVencimento.getFullYear(), dataVencimento.getMonth(), 1);
+    return new Date(Date.UTC(dataVencimento.getUTCFullYear(), dataVencimento.getUTCMonth(), 1));
   }
 
   const hoje = new Date();
 
-  return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  return new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
 }
 
 // Conta vencida e aquela nao paga com vencimento anterior ao dia atual.
