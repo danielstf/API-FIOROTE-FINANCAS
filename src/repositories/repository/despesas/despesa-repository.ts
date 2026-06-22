@@ -2,7 +2,7 @@ import { Despesa, FormaPagamentoDespesa } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { DespesaRepositoryInterface } from "../../interface/despesas/despesa-repo-interface";
 
-const renovacoesRecorrencia = new Set<string>();
+const renovacoesRecorrencia = new Map<string, number>();
 
 interface CriarDespesaData {
   usuarioId: string;
@@ -259,12 +259,22 @@ async function renovarRecorrenciasFixas(
 
   const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
 
-  if (renovacoesRecorrencia.has(chave)) {
+  // Cache em memória com TTL de 1 hora — resiste a múltiplas chamadas na mesma sessão
+  // mas expira naturalmente em caso de reinício do servidor dentro do mesmo mês
+  const agora_ms = Date.now();
+  const TTL_MS = 60 * 60 * 1000; // 1 hora
+  const ultimaRenovacao = renovacoesRecorrencia.get(chave);
+  if (ultimaRenovacao && agora_ms - ultimaRenovacao < TTL_MS) {
     return;
   }
 
   const horizonte = new Date(mesAtual);
   horizonte.setUTCMonth(horizonte.getUTCMonth() + 12);
+
+  // Estende apenas despesas fixas que estejam a menos de 2 meses do fim da recorrência,
+  // evitando extensões desnecessárias em despesas com horizonte já longo
+  const limiteExtensao = new Date(mesAtual);
+  limiteExtensao.setUTCMonth(limiteExtensao.getUTCMonth() + 2);
 
   await prisma.despesa.updateMany({
     where: {
@@ -274,7 +284,7 @@ async function renovarRecorrenciasFixas(
       recorrenciaEncerrada: false,
       recorrenciaFim: {
         gte: mesAtual,
-        lt: horizonte,
+        lt: limiteExtensao,
       },
     },
     data: {
@@ -282,5 +292,5 @@ async function renovarRecorrenciasFixas(
     },
   });
 
-  renovacoesRecorrencia.add(chave);
+  renovacoesRecorrencia.set(chave, agora_ms);
 }

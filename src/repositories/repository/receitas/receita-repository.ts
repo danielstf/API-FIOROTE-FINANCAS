@@ -2,7 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { Receita } from "@prisma/client";
 import { ReceitaRepositoryInterface } from "../../interface/receitas/receita-repo-interface";
 
-const renovacoesRecorrencia = new Set<string>();
+const renovacoesRecorrencia = new Map<string, number>();
 
 interface CriarReceitaData {
   usuarioId: string;
@@ -178,12 +178,18 @@ async function renovarRecorrenciasFixas(
 
   const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
 
-  if (renovacoesRecorrencia.has(chave)) {
+  const agora_ms = Date.now();
+  const TTL_MS = 60 * 60 * 1000;
+  const ultimaRenovacao = renovacoesRecorrencia.get(chave);
+  if (ultimaRenovacao && agora_ms - ultimaRenovacao < TTL_MS) {
     return;
   }
 
   const horizonte = new Date(mesAtual);
   horizonte.setUTCMonth(horizonte.getUTCMonth() + 12);
+
+  const limiteExtensao = new Date(mesAtual);
+  limiteExtensao.setUTCMonth(limiteExtensao.getUTCMonth() + 2);
 
   await prisma.receita.updateMany({
     where: {
@@ -193,7 +199,7 @@ async function renovarRecorrenciasFixas(
       recorrenciaEncerrada: false,
       recorrenciaFim: {
         gte: mesAtual,
-        lt: horizonte,
+        lt: limiteExtensao,
       },
     },
     data: {
@@ -201,5 +207,5 @@ async function renovarRecorrenciasFixas(
     },
   });
 
-  renovacoesRecorrencia.add(chave);
+  renovacoesRecorrencia.set(chave, agora_ms);
 }
