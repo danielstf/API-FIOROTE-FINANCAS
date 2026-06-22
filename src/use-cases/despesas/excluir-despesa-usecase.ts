@@ -32,16 +32,9 @@ export class ExcluirDespesaUseCase {
 
     const excluirTodas = escopo === "todas" || excluirParcelas;
 
-    if (despesa.fixa && !excluirTodas) {
-      await this.despesaRepository.createExcecaoRecorrencia(
-        despesa.id,
-        usuarioId,
-        mes ? criarDataDoMes(mes) : despesa.mesReferencia,
-      );
-      return;
-    }
-
-    if (despesa.fixa && excluirTodas) {
+    // Despesa fixa: qualquer escopo encerra a recorrência permanentemente.
+    // Não cria mais exceção por mês — a despesa nunca reaparece após excluída.
+    if (despesa.fixa) {
       const mesAlvo = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
       mesAlvo.setDate(1);
       mesAlvo.setHours(0, 0, 0, 0);

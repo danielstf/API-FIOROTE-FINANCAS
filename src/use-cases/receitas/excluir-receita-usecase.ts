@@ -12,8 +12,7 @@ interface ExcluirReceitaUseCaseRequest {
 export class ExcluirReceitaUseCase {
   constructor(private receitaRepository: ReceitaRepositoryInterface) {}
 
-  async execute({ usuarioId, receitaId, escopo, mes }: ExcluirReceitaUseCaseRequest) {
-    // Garante que a receita existe e pertence ao usuario antes de excluir.
+  async execute({ usuarioId, receitaId, mes }: ExcluirReceitaUseCaseRequest) {
     const receita = await this.receitaRepository.findByIdAndUsuario(
       receitaId,
       usuarioId,
@@ -23,16 +22,9 @@ export class ExcluirReceitaUseCase {
       throw new ReceitaNaoEncontradaError();
     }
 
-    if (receita.fixa && escopo !== "todas") {
-      await this.receitaRepository.createExcecaoRecorrencia(
-        receita.id,
-        usuarioId,
-        mes ? criarDataDoMes(mes) : receita.data,
-      );
-      return;
-    }
-
-    if (receita.fixa && escopo === "todas") {
+    // Receita fixa: qualquer escopo encerra a recorrência permanentemente.
+    // Não cria mais exceção por mês — a receita nunca reaparece após excluída.
+    if (receita.fixa) {
       await this.receitaRepository.update(receita.id, {
         recorrenciaFim: mes ? criarDataDoMes(mes) : receita.data,
         recorrenciaEncerrada: true,
