@@ -20,7 +20,6 @@ export class ExcluirDespesaUseCase {
     escopo,
     mes,
   }: ExcluirDespesaUseCaseRequest) {
-    // Garante que a despesa pertence ao usuario antes de excluir.
     const despesa = await this.despesaRepository.findByIdAndUsuario(
       despesaId,
       usuarioId,
@@ -32,9 +31,23 @@ export class ExcluirDespesaUseCase {
 
     const excluirTodas = escopo === "todas" || excluirParcelas;
 
-    // Despesa fixa: qualquer escopo encerra a recorrência permanentemente.
-    // Não cria mais exceção por mês — a despesa nunca reaparece após excluída.
-    if (despesa.fixa) {
+    // Despesa fixa novo estilo: registros individuais agrupados por parcelamentoId.
+    if (despesa.fixa && despesa.parcelamentoId) {
+      if (excluirTodas) {
+        const fromMes = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
+        await this.despesaRepository.deleteByParcelamentoFromMes(
+          despesa.parcelamentoId,
+          usuarioId,
+          fromMes,
+        );
+      } else {
+        await this.despesaRepository.delete(despesaId);
+      }
+      return;
+    }
+
+    // Despesa fixa legada (estilo recorrência): encerra permanentemente.
+    if (despesa.fixa && !despesa.parcelamentoId) {
       const mesAlvo = mes ? criarDataDoMes(mes) : new Date(despesa.mesReferencia);
       mesAlvo.setDate(1);
       mesAlvo.setHours(0, 0, 0, 0);
@@ -43,20 +56,21 @@ export class ExcluirDespesaUseCase {
       mesOrigem.setDate(1);
       mesOrigem.setHours(0, 0, 0, 0);
 
-      // Sem histórico anterior ao mês alvo → delete completo com limpeza de exceções.
       if (mesAlvo <= mesOrigem) {
         await this.despesaRepository.deleteComExcecoes(despesa.id);
         return;
       }
 
-      // Há meses anteriores com histórico → encerra a recorrência a partir do mês alvo,
-      // preservando os registros passados para fins de auditoria.
       const recorrenciaFim = new Date(mesAlvo);
       recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
-      await this.despesaRepository.update(despesa.id, { recorrenciaFim, recorrenciaEncerrada: true });
+      await this.despesaRepository.update(despesa.id, {
+        recorrenciaFim,
+        recorrenciaEncerrada: true,
+      });
       return;
     }
 
+    // Parcelamento (não fixa).
     if (excluirTodas && despesa.parcelamentoId) {
       await this.despesaRepository.deleteByParcelamento(
         despesa.parcelamentoId,

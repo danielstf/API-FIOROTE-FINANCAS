@@ -51,6 +51,15 @@ export interface ReceitaRepositoryInterface {
   // Remove uma receita depois que o use case confirmou a permissao do usuario.
   delete(receitaId: string): Promise<void>;
 
+  // Exclui todas as receitas do mesmo parcelamento pertencentes ao usuario.
+  deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void>;
+
+  // Exclui receitas do mesmo parcelamento a partir de um mês (inclusive).
+  deleteByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date): Promise<void>;
+
+  // Atualiza campos de todas as receitas do mesmo parcelamento a partir de um mês.
+  updateManyByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date, data: AtualizarReceitaData): Promise<void>;
+
   createExcecaoRecorrencia(
     receitaId: string,
     usuarioId: string,

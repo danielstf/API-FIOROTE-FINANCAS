@@ -84,7 +84,41 @@ export class EditarDespesaUseCase {
       cartaoId = null;
     }
 
-    // "Editar este e todos os seguintes": encerra o original e cria um novo a partir do mes informado.
+    // Despesa fixa novo estilo (registros individuais agrupados por parcelamentoId).
+    if (despesaExistente.fixa && despesaExistente.parcelamentoId) {
+      if (escopo === "todas" && mes) {
+        // Atualiza este e todos os seguintes pelo mesmo grupo.
+        const mesAlvo = criarDataDoMes(mes);
+        await this.despesaRepository.updateManyByParcelamentoFromMes(
+          despesaExistente.parcelamentoId,
+          usuarioId,
+          mesAlvo,
+          {
+            descricao: nome?.trim(),
+            valor,
+            categoriaNome: categoria === undefined ? undefined : categoria?.trim() || null,
+            formaPagamento,
+            cartaoCreditoId: cartaoId,
+          },
+        );
+        return formatarDespesa(
+          await this.despesaRepository.findByIdAndUsuario(despesaExistente.id, usuarioId) ?? despesaExistente,
+        );
+      }
+
+      // Edita somente este registro.
+      const despesa = await this.despesaRepository.update(despesaExistente.id, {
+        descricao: nome?.trim(),
+        valor,
+        categoriaNome: categoria === undefined ? undefined : categoria?.trim() || null,
+        formaPagamento,
+        cartaoCreditoId: cartaoId,
+        dataVencimento: vencimento,
+      });
+      return formatarDespesa(despesa);
+    }
+
+    // Despesa fixa legada (recorrência): encerra e cria novo a partir do mês alvo.
     if (despesaExistente.fixa && escopo === "todas" && mes) {
       const mesAlvo = criarDataDoMes(mes);
       const recorrenciaFim = new Date(mesAlvo);
@@ -117,7 +151,7 @@ export class EditarDespesaUseCase {
       return formatarDespesa(novaDespesa);
     }
 
-    // "Editar só este mês": cria excecao no original e um registro avulso para o mes.
+    // Despesa fixa legada — editar somente o mês selecionado.
     if (despesaExistente.fixa && mes) {
       const mesReferencia = criarDataDoMes(mes);
       const diferencaMeses =

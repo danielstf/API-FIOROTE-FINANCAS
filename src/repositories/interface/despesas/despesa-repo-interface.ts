@@ -68,6 +68,12 @@ export interface DespesaRepositoryInterface {
   // Exclui todas as despesas do mesmo parcelamento pertencentes ao usuario.
   deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void>;
 
+  // Exclui despesas do mesmo parcelamento a partir de um mês (inclusive).
+  deleteByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date): Promise<void>;
+
+  // Atualiza campos de todas as despesas do mesmo parcelamento a partir de um mês.
+  updateManyByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date, data: AtualizarDespesaData): Promise<void>;
+
   // Oculta uma despesa fixa em um mes especifico, sem apagar a recorrencia inteira.
   createExcecaoRecorrencia(
     despesaId: string,

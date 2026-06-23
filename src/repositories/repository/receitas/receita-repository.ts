@@ -75,33 +75,29 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
         OR:
           dataInicio && dataFim
             ? [
+                // Receitas avulsas, parceladas e fixas novo estilo (data explícita).
                 {
-                  fixa: false,
-                  data: {
-                    gte: dataInicio,
-                    lt: dataFim,
-                  },
+                  parcelamentoId: { not: null },
+                  data: { gte: dataInicio, lt: dataFim },
                 },
                 {
+                  fixa: false,
+                  parcelamentoId: null,
+                  data: { gte: dataInicio, lt: dataFim },
+                },
+                // Receitas fixas legadas (recorrência, sem parcelamentoId individual).
+                {
                   fixa: true,
-                  data: {
-                    lt: dataFim,
-                  },
+                  parcelamentoId: null,
+                  data: { lt: dataFim },
                   OR: [
                     { recorrenciaFim: null },
-                    {
-                      recorrenciaFim: {
-                        gt: dataInicio,
-                      },
-                    },
+                    { recorrenciaFim: { gt: dataInicio } },
                   ],
                   excecoesRecorrencia: {
                     none: {
                       usuarioId,
-                      mesReferencia: {
-                        gte: dataInicio,
-                        lt: dataFim,
-                      },
+                      mesReferencia: { gte: dataInicio, lt: dataFim },
                     },
                   },
                 },
@@ -143,6 +139,45 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
   async delete(receitaId: string): Promise<void> {
     await prisma.receita.delete({
       where: { id: receitaId },
+    });
+  }
+
+  // Exclui todas as receitas do mesmo parcelamento do usuario.
+  async deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void> {
+    await prisma.receita.deleteMany({
+      where: { parcelamentoId, usuarioId },
+    });
+  }
+
+  // Exclui receitas do mesmo parcelamento a partir de um mês (inclusive).
+  async deleteByParcelamentoFromMes(
+    parcelamentoId: string,
+    usuarioId: string,
+    fromMes: Date,
+  ): Promise<void> {
+    await prisma.receita.deleteMany({
+      where: {
+        parcelamentoId,
+        usuarioId,
+        data: { gte: fromMes },
+      },
+    });
+  }
+
+  // Atualiza campos de todas as receitas do mesmo parcelamento a partir de um mês.
+  async updateManyByParcelamentoFromMes(
+    parcelamentoId: string,
+    usuarioId: string,
+    fromMes: Date,
+    data: AtualizarReceitaData,
+  ): Promise<void> {
+    await prisma.receita.updateMany({
+      where: {
+        parcelamentoId,
+        usuarioId,
+        data: { gte: fromMes },
+      },
+      data,
     });
   }
 

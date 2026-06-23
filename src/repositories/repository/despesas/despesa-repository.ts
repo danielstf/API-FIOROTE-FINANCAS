@@ -99,56 +99,31 @@ export class DespesaRepository implements DespesaRepositoryInterface {
         OR:
           dataInicio && dataFim
             ? [
+                // Despesas avulsas, parceladas e fixas novo estilo (mesReferencia explícito).
                 {
-                  fixa: false,
-                  mesReferencia: {
-                    gte: dataInicio,
-                    lt: dataFim,
-                  },
+                  parcelamentoId: { not: null },
+                  mesReferencia: { gte: dataInicio, lt: dataFim },
                 },
                 {
+                  fixa: false,
+                  parcelamentoId: null,
+                  mesReferencia: { gte: dataInicio, lt: dataFim },
+                },
+                // Despesas fixas legadas (recorrência, sem parcelamentoId individual).
+                {
                   fixa: true,
-                  mesReferencia: {
-                    lt: dataFim,
-                  },
+                  parcelamentoId: null,
+                  mesReferencia: { lt: dataFim },
                   OR: [
                     { recorrenciaFim: null },
-                    {
-                      recorrenciaFim: {
-                        gt: dataInicio,
-                      },
-                    },
+                    { recorrenciaFim: { gt: dataInicio } },
                   ],
                   excecoesRecorrencia: {
                     none: {
                       usuarioId,
-                      mesReferencia: {
-                        gte: dataInicio,
-                        lt: dataFim,
-                      },
+                      mesReferencia: { gte: dataInicio, lt: dataFim },
                     },
                   },
-                },
-              ]
-            : undefined,
-        AND:
-          dataInicio && dataFim
-            ? [
-                {
-                  OR: [
-                    { fixa: false },
-                    {
-                      excecoesRecorrencia: {
-                        none: {
-                          usuarioId,
-                          mesReferencia: {
-                            gte: dataInicio,
-                            lt: dataFim,
-                          },
-                        },
-                      },
-                    },
-                  ],
                 },
               ]
             : undefined,
@@ -211,10 +186,39 @@ export class DespesaRepository implements DespesaRepositoryInterface {
     usuarioId: string,
   ): Promise<void> {
     await prisma.despesa.deleteMany({
+      where: { parcelamentoId, usuarioId },
+    });
+  }
+
+  // Exclui registros do mesmo parcelamento a partir de um mês (inclusive).
+  async deleteByParcelamentoFromMes(
+    parcelamentoId: string,
+    usuarioId: string,
+    fromMes: Date,
+  ): Promise<void> {
+    await prisma.despesa.deleteMany({
       where: {
         parcelamentoId,
         usuarioId,
+        mesReferencia: { gte: fromMes },
       },
+    });
+  }
+
+  // Atualiza campos de todos os registros do mesmo parcelamento a partir de um mês.
+  async updateManyByParcelamentoFromMes(
+    parcelamentoId: string,
+    usuarioId: string,
+    fromMes: Date,
+    data: AtualizarDespesaData,
+  ): Promise<void> {
+    await prisma.despesa.updateMany({
+      where: {
+        parcelamentoId,
+        usuarioId,
+        mesReferencia: { gte: fromMes },
+      },
+      data,
     });
   }
 

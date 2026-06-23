@@ -51,7 +51,33 @@ export class EditarReceitaUseCase {
       throw new ReceitaNaoEncontradaError();
     }
 
-    // "Editar este e todos os seguintes": encerra o original e cria um novo a partir do mes informado.
+    // Receita fixa novo estilo (registros individuais agrupados por parcelamentoId).
+    if (receitaExistente.fixa && receitaExistente.parcelamentoId) {
+      if (escopo === "todas" && mes) {
+        const mesAlvo = criarDataDoMes(mes);
+        await this.receitaRepository.updateManyByParcelamentoFromMes(
+          receitaExistente.parcelamentoId,
+          usuarioId,
+          mesAlvo,
+          {
+            descricao: nome?.trim(),
+            valor,
+          },
+        );
+        return formatarReceita(
+          await this.receitaRepository.findByIdAndUsuario(receitaExistente.id, usuarioId) ?? receitaExistente,
+        );
+      }
+
+      // Edita somente este registro.
+      const receita = await this.receitaRepository.update(receitaExistente.id, {
+        descricao: nome?.trim(),
+        valor,
+      });
+      return formatarReceita(receita);
+    }
+
+    // Receita fixa legada — encerra e cria novo a partir do mês alvo.
     if (receitaExistente.fixa && escopo === "todas" && mes) {
       const mesAlvo = criarDataDoMes(mes);
 
@@ -73,7 +99,7 @@ export class EditarReceitaUseCase {
       return formatarReceita(novaReceita);
     }
 
-    // "Editar só este mês": cria excecao no original e um registro avulso para o mes.
+    // Receita fixa legada — editar somente o mês selecionado.
     if (receitaExistente.fixa && mes) {
       const mesReferencia = criarDataDoMes(mes);
 

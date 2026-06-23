@@ -7,6 +7,11 @@ import {
 } from "../pagamentos/premium-validade";
 import { criarDataDoMes, formatarMesReceita, somarMeses } from "./receita-mes";
 
+import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
+export { UsuarioNaoEncontradoError };
+
+const MESES_FIXO = 60; // 5 anos
+
 interface CriarReceitaUseCaseRequest {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
@@ -16,9 +21,6 @@ interface CriarReceitaUseCaseRequest {
   fixa?: boolean;
   numeroParcelas?: number;
 }
-
-import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
-export { UsuarioNaoEncontradoError };
 
 export class PlanoPremiumObrigatorioError extends Error {
   constructor() {
@@ -41,7 +43,6 @@ export class CriarReceitaUseCase {
     fixa = false,
     numeroParcelas,
   }: CriarReceitaUseCaseRequest) {
-    // Confere se o usuario do token ainda existe antes de gravar a receita.
     const usuario = await this.usuarioRepository.findById(usuarioId);
 
     if (!usuario) {
@@ -56,11 +57,47 @@ export class CriarReceitaUseCase {
       }
     }
 
-    // O mes e salvo como uma data no primeiro dia do mes informado.
     const data = criarDataDoMes(mes);
-    const totalParcelas = !fixa && numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
+
+    function formatarReceita(r: { id: string; descricao: string; valor: unknown; data: Date; fixa: boolean; numeroParcelas: number | null; parcelaAtual: number | null; parcelamentoId: string | null; criadoEm: Date }) {
+      return {
+        id: r.id,
+        nome: r.descricao,
+        valor: Number(r.valor),
+        mes: formatarMesReceita(r.data),
+        data: r.data,
+        fixa: r.fixa,
+        numeroParcelas: r.numeroParcelas,
+        parcelaAtual: r.parcelaAtual,
+        parcelamentoId: r.parcelamentoId,
+        criadoEm: r.criadoEm,
+      };
+    }
+
+    // Receita fixa: cria 60 registros individuais (5 anos), um por mês.
+    if (fixa) {
+      const grupoId = randomUUID();
+
+      const receitas = await this.receitaRepository.createMany(
+        Array.from({ length: MESES_FIXO }, (_, index) => ({
+          descricao: nome.trim(),
+          valor,
+          data: somarMeses(data, index),
+          usuarioId,
+          perfilFinanceiroId,
+          fixa: true,
+          parcelamentoId: grupoId,
+          numeroParcelas: null,
+          parcelaAtual: null,
+        })),
+      );
+
+      return { receitas: receitas.map(formatarReceita) };
+    }
+
+    // Receita parcelada ou avulsa.
+    const totalParcelas = numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
     const parcelamentoId = totalParcelas > 1 ? randomUUID() : null;
-    const recorrenciaFim = fixa ? somarMeses(data, 12) : null;
 
     const receitas = await this.receitaRepository.createMany(
       Array.from({ length: totalParcelas }, (_, index) => ({
@@ -72,27 +109,13 @@ export class CriarReceitaUseCase {
         data: somarMeses(data, index),
         usuarioId,
         perfilFinanceiroId,
-        fixa,
-        recorrenciaFim,
+        fixa: false,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,
         parcelamentoId,
       })),
     );
 
-    return {
-      receitas: receitas.map((receita) => ({
-        id: receita.id,
-        nome: receita.descricao,
-        valor: Number(receita.valor),
-        mes: formatarMesReceita(receita.data),
-        data: receita.data,
-        fixa: receita.fixa,
-        numeroParcelas: receita.numeroParcelas,
-        parcelaAtual: receita.parcelaAtual,
-        parcelamentoId: receita.parcelamentoId,
-        criadoEm: receita.criadoEm,
-      })),
-    };
+    return { receitas: receitas.map(formatarReceita) };
   }
 }

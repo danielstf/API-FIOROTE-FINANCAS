@@ -12,6 +12,8 @@ import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despes
 import { UsuarioNaoEncontradoError } from "../../errors/app-errors";
 export { UsuarioNaoEncontradoError };
 
+const MESES_FIXO = 60; // 5 anos
+
 interface CriarDespesaUseCaseRequest {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
@@ -64,7 +66,6 @@ export class CriarDespesaUseCase {
     fixa = false,
     numeroParcelas,
   }: CriarDespesaUseCaseRequest) {
-    // Confere se o usuario do token ainda existe antes de gravar a despesa.
     const usuario = await this.usuarioRepository.findById(usuarioId);
 
     if (!usuario) {
@@ -101,9 +102,35 @@ export class CriarDespesaUseCase {
 
     const vencimento = criarDataOpcional(dataVencimento);
     const mesReferencia = criarMesReferencia(mes, vencimento);
-    const totalParcelas = !fixa && numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
+
+    // Despesa fixa: cria 60 registros individuais (5 anos), um por mês.
+    if (fixa) {
+      const grupoId = randomUUID();
+
+      const despesas = await this.despesaRepository.createMany(
+        Array.from({ length: MESES_FIXO }, (_, index) => ({
+          usuarioId,
+          perfilFinanceiroId,
+          descricao: nome.trim(),
+          valor,
+          categoriaNome: categoria?.trim() || null,
+          formaPagamento,
+          cartaoCreditoId: cartaoId,
+          mesReferencia: somarMeses(mesReferencia, index),
+          dataVencimento: vencimento ? somarMeses(vencimento, index) : null,
+          fixa: true,
+          parcelamentoId: grupoId,
+          numeroParcelas: null,
+          parcelaAtual: null,
+        })),
+      );
+
+      return { despesas: despesas.map(formatarDespesa) };
+    }
+
+    // Despesa parcelada ou avulsa.
+    const totalParcelas = numeroParcelas && numeroParcelas > 1 ? numeroParcelas : 1;
     const parcelamentoId = totalParcelas > 1 ? randomUUID() : null;
-    const recorrenciaFim = fixa ? somarMeses(mesReferencia, 12) : null;
 
     const despesas = await this.despesaRepository.createMany(
       Array.from({ length: totalParcelas }, (_, index) => ({
@@ -119,16 +146,13 @@ export class CriarDespesaUseCase {
         cartaoCreditoId: cartaoId,
         mesReferencia: somarMeses(mesReferencia, index),
         dataVencimento: vencimento ? somarMeses(vencimento, index) : null,
-        fixa,
-        recorrenciaFim,
+        fixa: false,
         numeroParcelas: totalParcelas > 1 ? totalParcelas : null,
         parcelaAtual: totalParcelas > 1 ? index + 1 : null,
         parcelamentoId,
       })),
     );
 
-    return {
-      despesas: despesas.map(formatarDespesa),
-    };
+    return { despesas: despesas.map(formatarDespesa) };
   }
 }
