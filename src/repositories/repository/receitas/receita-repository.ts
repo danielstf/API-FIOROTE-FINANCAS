@@ -2,8 +2,6 @@ import { prisma } from "../../../lib/prisma";
 import { Receita } from "@prisma/client";
 import { ReceitaRepositoryInterface } from "../../interface/receitas/receita-repo-interface";
 
-const renovacoesRecorrencia = new Map<string, number>();
-
 interface CriarReceitaData {
   usuarioId: string;
   perfilFinanceiroId?: string | null;
@@ -11,7 +9,6 @@ interface CriarReceitaData {
   valor: number;
   data: Date;
   fixa?: boolean;
-  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -29,142 +26,70 @@ interface AtualizarReceitaData {
   valor?: number;
   data?: Date;
   fixa?: boolean;
-  recorrenciaFim?: Date | null;
-  recorrenciaEncerrada?: boolean;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
 }
 
 export class ReceitaRepository implements ReceitaRepositoryInterface {
-  // Cria uma nova receita vinculada ao usuario.
   async create(data: CriarReceitaData): Promise<Receita> {
-    const receita = await prisma.receita.create({
-      data,
-    });
-
-    return receita;
+    return prisma.receita.create({ data });
   }
 
-  // Cria receitas em lote, uma por mes quando houver parcelamento.
   async createMany(data: CriarReceitaData[]): Promise<Receita[]> {
-    const receitas = await prisma.$transaction(
-      data.map((receita) =>
-        prisma.receita.create({
-          data: receita,
-        }),
-      ),
+    return prisma.$transaction(
+      data.map((receita) => prisma.receita.create({ data: receita })),
     );
-
-    return receitas;
   }
 
-  // Lista receitas do usuario, filtrando por intervalo quando informado.
   async listByUsuario({
     usuarioId,
     perfilFinanceiroId,
     dataInicio,
     dataFim,
   }: ListarPorUsuarioParams): Promise<Receita[]> {
-    await renovarRecorrenciasFixas(usuarioId, perfilFinanceiroId);
-
-    const receitas = await prisma.receita.findMany({
+    return prisma.receita.findMany({
       where: {
         usuarioId,
         perfilFinanceiroId: perfilFinanceiroId ?? null,
         OR:
           dataInicio && dataFim
             ? [
-                // Receitas avulsas, parceladas e fixas novo estilo (data explícita).
-                {
-                  parcelamentoId: { not: null },
-                  data: { gte: dataInicio, lt: dataFim },
-                },
-                {
-                  fixa: false,
-                  parcelamentoId: null,
-                  data: { gte: dataInicio, lt: dataFim },
-                },
-                // Receitas fixas legadas (recorrência, sem parcelamentoId individual).
-                {
-                  fixa: true,
-                  parcelamentoId: null,
-                  data: { lt: dataFim },
-                  OR: [
-                    { recorrenciaFim: null },
-                    { recorrenciaFim: { gt: dataInicio } },
-                  ],
-                  excecoesRecorrencia: {
-                    none: {
-                      usuarioId,
-                      mesReferencia: { gte: dataInicio, lt: dataFim },
-                    },
-                  },
-                },
+                { parcelamentoId: { not: null }, data: { gte: dataInicio, lt: dataFim } },
+                { fixa: false, parcelamentoId: null, data: { gte: dataInicio, lt: dataFim } },
               ]
             : undefined,
       },
       orderBy: [{ data: "desc" }, { criadoEm: "desc" }],
     });
-
-    return receitas;
   }
 
-  // Busca a receita pelo id e pelo dono para evitar acesso a dados de outro usuario.
-  async findByIdAndUsuario(
-    receitaId: string,
-    usuarioId: string,
-  ): Promise<Receita | null> {
-    const receita = await prisma.receita.findFirst({
-      where: {
-        id: receitaId,
-        usuarioId,
-      },
-    });
-
-    return receita;
+  async findByIdAndUsuario(receitaId: string, usuarioId: string): Promise<Receita | null> {
+    return prisma.receita.findFirst({ where: { id: receitaId, usuarioId } });
   }
 
-  // Atualiza os campos informados da receita.
   async update(receitaId: string, data: AtualizarReceitaData): Promise<Receita> {
-    const receita = await prisma.receita.update({
-      where: { id: receitaId },
-      data,
-    });
-
-    return receita;
+    return prisma.receita.update({ where: { id: receitaId }, data });
   }
 
-  // Exclui a receita pelo id.
   async delete(receitaId: string): Promise<void> {
-    await prisma.receita.delete({
-      where: { id: receitaId },
-    });
+    await prisma.receita.delete({ where: { id: receitaId } });
   }
 
-  // Exclui todas as receitas do mesmo parcelamento do usuario.
   async deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void> {
-    await prisma.receita.deleteMany({
-      where: { parcelamentoId, usuarioId },
-    });
+    await prisma.receita.deleteMany({ where: { parcelamentoId, usuarioId } });
   }
 
-  // Exclui receitas do mesmo parcelamento a partir de um mês (inclusive).
   async deleteByParcelamentoFromMes(
     parcelamentoId: string,
     usuarioId: string,
     fromMes: Date,
   ): Promise<void> {
     await prisma.receita.deleteMany({
-      where: {
-        parcelamentoId,
-        usuarioId,
-        data: { gte: fromMes },
-      },
+      where: { parcelamentoId, usuarioId, data: { gte: fromMes } },
     });
   }
 
-  // Atualiza campos de todas as receitas do mesmo parcelamento a partir de um mês.
   async updateManyByParcelamentoFromMes(
     parcelamentoId: string,
     usuarioId: string,
@@ -172,75 +97,8 @@ export class ReceitaRepository implements ReceitaRepositoryInterface {
     data: AtualizarReceitaData,
   ): Promise<void> {
     await prisma.receita.updateMany({
-      where: {
-        parcelamentoId,
-        usuarioId,
-        data: { gte: fromMes },
-      },
+      where: { parcelamentoId, usuarioId, data: { gte: fromMes } },
       data,
     });
   }
-
-  async createExcecaoRecorrencia(
-    receitaId: string,
-    usuarioId: string,
-    mesReferencia: Date,
-  ): Promise<void> {
-    await prisma.receitaExcecaoRecorrencia.upsert({
-      where: {
-        receitaId_usuarioId_mesReferencia: {
-          receitaId,
-          usuarioId,
-          mesReferencia,
-        },
-      },
-      update: {},
-      create: {
-        receitaId,
-        usuarioId,
-        mesReferencia,
-      },
-    });
-  }
-}
-
-async function renovarRecorrenciasFixas(
-  usuarioId: string,
-  perfilFinanceiroId?: string | null,
-) {
-  const agora = new Date();
-  const mesAtual = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1));
-
-  const chave = `${usuarioId}:${perfilFinanceiroId ?? "sem-perfil"}:${mesAtual.toISOString()}`;
-
-  const agora_ms = Date.now();
-  const TTL_MS = 60 * 60 * 1000;
-  const ultimaRenovacao = renovacoesRecorrencia.get(chave);
-  if (ultimaRenovacao && agora_ms - ultimaRenovacao < TTL_MS) {
-    return;
-  }
-
-  const horizonte = new Date(mesAtual);
-  horizonte.setUTCMonth(horizonte.getUTCMonth() + 12);
-
-  const limiteExtensao = new Date(mesAtual);
-  limiteExtensao.setUTCMonth(limiteExtensao.getUTCMonth() + 2);
-
-  await prisma.receita.updateMany({
-    where: {
-      usuarioId,
-      perfilFinanceiroId: perfilFinanceiroId ?? null,
-      fixa: true,
-      recorrenciaEncerrada: false,
-      recorrenciaFim: {
-        gte: mesAtual,
-        lt: limiteExtensao,
-      },
-    },
-    data: {
-      recorrenciaFim: horizonte,
-    },
-  });
-
-  renovacoesRecorrencia.set(chave, agora_ms);
 }

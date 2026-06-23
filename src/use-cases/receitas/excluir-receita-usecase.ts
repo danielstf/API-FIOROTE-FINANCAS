@@ -22,27 +22,14 @@ export class ExcluirReceitaUseCase {
       throw new ReceitaNaoEncontradaError();
     }
 
-    // Receita fixa novo estilo: registros individuais agrupados por parcelamentoId.
-    if (receita.fixa && receita.parcelamentoId) {
-      if (escopo === "todas") {
-        const fromMes = mes ? criarDataDoMes(mes) : receita.data;
-        await this.receitaRepository.deleteByParcelamentoFromMes(
-          receita.parcelamentoId,
-          usuarioId,
-          fromMes,
-        );
-      } else {
-        await this.receitaRepository.delete(receitaId);
-      }
-      return;
-    }
-
-    // Receita fixa legada (estilo recorrência): encerra permanentemente.
-    if (receita.fixa && !receita.parcelamentoId) {
-      await this.receitaRepository.update(receita.id, {
-        recorrenciaFim: mes ? criarDataDoMes(mes) : receita.data,
-        recorrenciaEncerrada: true,
-      });
+    // Receita fixa: exclui a partir deste mês ou somente esta.
+    if (receita.fixa && receita.parcelamentoId && escopo === "todas") {
+      const fromMes = mes ? criarDataDoMes(mes) : receita.data;
+      await this.receitaRepository.deleteByParcelamentoFromMes(
+        receita.parcelamentoId,
+        usuarioId,
+        fromMes,
+      );
       return;
     }
 

@@ -1,6 +1,6 @@
 import { Receita } from "@prisma/client";
 import { ReceitaRepositoryInterface } from "../../repositories/interface/receitas/receita-repo-interface";
-import { criarDataDoMes, formatarMesReceita, somarMeses } from "./receita-mes";
+import { criarDataDoMes, formatarMesReceita } from "./receita-mes";
 import { ReceitaNaoEncontradaError } from "./obter-receita-usecase";
 
 function formatarReceita(r: Receita) {
@@ -34,7 +34,6 @@ export class EditarReceitaUseCase {
 
   async execute({
     usuarioId,
-    perfilFinanceiroId,
     receitaId,
     nome,
     valor,
@@ -51,7 +50,7 @@ export class EditarReceitaUseCase {
       throw new ReceitaNaoEncontradaError();
     }
 
-    // Receita fixa novo estilo (registros individuais agrupados por parcelamentoId).
+    // Receita fixa: registros individuais agrupados por parcelamentoId.
     if (receitaExistente.fixa && receitaExistente.parcelamentoId) {
       if (escopo === "todas" && mes) {
         const mesAlvo = criarDataDoMes(mes);
@@ -59,69 +58,18 @@ export class EditarReceitaUseCase {
           receitaExistente.parcelamentoId,
           usuarioId,
           mesAlvo,
-          {
-            descricao: nome?.trim(),
-            valor,
-          },
+          { descricao: nome?.trim(), valor },
         );
         return formatarReceita(
           await this.receitaRepository.findByIdAndUsuario(receitaExistente.id, usuarioId) ?? receitaExistente,
         );
       }
 
-      // Edita somente este registro.
       const receita = await this.receitaRepository.update(receitaExistente.id, {
         descricao: nome?.trim(),
         valor,
       });
       return formatarReceita(receita);
-    }
-
-    // Receita fixa legada — encerra e cria novo a partir do mês alvo.
-    if (receitaExistente.fixa && escopo === "todas" && mes) {
-      const mesAlvo = criarDataDoMes(mes);
-
-      await this.receitaRepository.update(receitaExistente.id, {
-        recorrenciaFim: mesAlvo,
-        recorrenciaEncerrada: true,
-      });
-
-      const novaReceita = await this.receitaRepository.create({
-        usuarioId,
-        perfilFinanceiroId: perfilFinanceiroId ?? receitaExistente.perfilFinanceiroId,
-        descricao: nome?.trim() ?? receitaExistente.descricao,
-        valor: valor ?? Number(receitaExistente.valor),
-        data: mesAlvo,
-        fixa: true,
-        recorrenciaFim: somarMeses(mesAlvo, 12),
-      });
-
-      return formatarReceita(novaReceita);
-    }
-
-    // Receita fixa legada — editar somente o mês selecionado.
-    if (receitaExistente.fixa && mes) {
-      const mesReferencia = criarDataDoMes(mes);
-
-      await this.receitaRepository.createExcecaoRecorrencia(
-        receitaExistente.id,
-        usuarioId,
-        mesReferencia,
-      );
-
-      const receitaDoMes = await this.receitaRepository.create({
-        usuarioId,
-        perfilFinanceiroId: perfilFinanceiroId ?? receitaExistente.perfilFinanceiroId,
-        descricao: nome?.trim() ?? receitaExistente.descricao,
-        valor: valor ?? Number(receitaExistente.valor),
-        data: mesReferencia,
-        fixa: false,
-        numeroParcelas: null,
-        parcelaAtual: null,
-        parcelamentoId: null,
-      });
-
-      return formatarReceita(receitaDoMes);
     }
 
     const receita = await this.receitaRepository.update(receitaId, {

@@ -7,7 +7,6 @@ interface CriarReceitaData {
   valor: number;
   data: Date;
   fixa?: boolean;
-  recorrenciaFim?: Date | null;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
@@ -25,44 +24,19 @@ interface AtualizarReceitaData {
   valor?: number;
   data?: Date;
   fixa?: boolean;
-  recorrenciaFim?: Date | null;
-  recorrenciaEncerrada?: boolean;
   numeroParcelas?: number | null;
   parcelaAtual?: number | null;
   parcelamentoId?: string | null;
 }
 
 export interface ReceitaRepositoryInterface {
-  // Cria uma nova receita para o usuario informado.
   create(data: CriarReceitaData): Promise<Receita>;
-
-  // Cria varias receitas, usado para parcelamento mensal.
   createMany(data: CriarReceitaData[]): Promise<Receita[]>;
-
-  // Lista receitas do usuario, com filtro opcional por periodo.
   listByUsuario(params: ListarPorUsuarioParams): Promise<Receita[]>;
-
-  // Busca uma receita especifica garantindo que ela pertence ao usuario.
   findByIdAndUsuario(receitaId: string, usuarioId: string): Promise<Receita | null>;
-
-  // Atualiza uma receita depois que o use case confirmou a permissao do usuario.
   update(receitaId: string, data: AtualizarReceitaData): Promise<Receita>;
-
-  // Remove uma receita depois que o use case confirmou a permissao do usuario.
   delete(receitaId: string): Promise<void>;
-
-  // Exclui todas as receitas do mesmo parcelamento pertencentes ao usuario.
   deleteByParcelamento(parcelamentoId: string, usuarioId: string): Promise<void>;
-
-  // Exclui receitas do mesmo parcelamento a partir de um mês (inclusive).
   deleteByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date): Promise<void>;
-
-  // Atualiza campos de todas as receitas do mesmo parcelamento a partir de um mês.
   updateManyByParcelamentoFromMes(parcelamentoId: string, usuarioId: string, fromMes: Date, data: AtualizarReceitaData): Promise<void>;
-
-  createExcecaoRecorrencia(
-    receitaId: string,
-    usuarioId: string,
-    mesReferencia: Date,
-  ): Promise<void>;
 }

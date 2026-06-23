@@ -2,7 +2,7 @@ import { FormaPagamentoDespesa } from "@prisma/client";
 import { CartaoRepositoryInterface } from "../../repositories/interface/cartoes/cartao-repo-interface";
 import { DespesaRepositoryInterface } from "../../repositories/interface/despesas/despesa-repo-interface";
 import { criarDataOpcional, criarMesReferencia, formatarDespesa } from "./despesa-dados";
-import { criarDataDoMes, somarMeses } from "../receitas/receita-mes";
+import { criarDataDoMes } from "../receitas/receita-mes";
 import {
   CartaoNaoEncontradoError,
   CartaoObrigatorioError,
@@ -84,10 +84,9 @@ export class EditarDespesaUseCase {
       cartaoId = null;
     }
 
-    // Despesa fixa novo estilo (registros individuais agrupados por parcelamentoId).
+    // Despesa fixa: registros individuais agrupados por parcelamentoId.
     if (despesaExistente.fixa && despesaExistente.parcelamentoId) {
       if (escopo === "todas" && mes) {
-        // Atualiza este e todos os seguintes pelo mesmo grupo.
         const mesAlvo = criarDataDoMes(mes);
         await this.despesaRepository.updateManyByParcelamentoFromMes(
           despesaExistente.parcelamentoId,
@@ -106,7 +105,6 @@ export class EditarDespesaUseCase {
         );
       }
 
-      // Edita somente este registro.
       const despesa = await this.despesaRepository.update(despesaExistente.id, {
         descricao: nome?.trim(),
         valor,
@@ -116,82 +114,6 @@ export class EditarDespesaUseCase {
         dataVencimento: vencimento,
       });
       return formatarDespesa(despesa);
-    }
-
-    // Despesa fixa legada (recorrência): encerra e cria novo a partir do mês alvo.
-    if (despesaExistente.fixa && escopo === "todas" && mes) {
-      const mesAlvo = criarDataDoMes(mes);
-      const recorrenciaFim = new Date(mesAlvo);
-      recorrenciaFim.setDate(recorrenciaFim.getDate() - 1);
-
-      await this.despesaRepository.update(despesaExistente.id, {
-        recorrenciaFim,
-        recorrenciaEncerrada: true,
-      });
-
-      const novaDespesa = await this.despesaRepository.create({
-        usuarioId,
-        perfilFinanceiroId: perfilFinanceiroId ?? despesaExistente.perfilFinanceiroId,
-        descricao: nome?.trim() ?? despesaExistente.descricao,
-        valor: valor ?? Number(despesaExistente.valor),
-        categoriaNome:
-          categoria === undefined
-            ? despesaExistente.categoriaNome
-            : categoria?.trim() || null,
-        formaPagamento: formaFinal,
-        cartaoCreditoId:
-          cartaoId === undefined ? despesaExistente.cartaoCreditoId : cartaoId,
-        mesReferencia: mesAlvo,
-        dataVencimento:
-          vencimento === undefined ? despesaExistente.dataVencimento : vencimento,
-        fixa: true,
-        recorrenciaFim: somarMeses(mesAlvo, 12),
-      });
-
-      return formatarDespesa(novaDespesa);
-    }
-
-    // Despesa fixa legada — editar somente o mês selecionado.
-    if (despesaExistente.fixa && mes) {
-      const mesReferencia = criarDataDoMes(mes);
-      const diferencaMeses =
-        (mesReferencia.getFullYear() - despesaExistente.mesReferencia.getFullYear()) *
-          12 +
-        (mesReferencia.getMonth() - despesaExistente.mesReferencia.getMonth());
-      const vencimentoFinal =
-        vencimento === undefined
-          ? despesaExistente.dataVencimento
-            ? somarMeses(despesaExistente.dataVencimento, Math.max(diferencaMeses, 0))
-            : null
-          : vencimento;
-
-      await this.despesaRepository.createExcecaoRecorrencia(
-        despesaExistente.id,
-        usuarioId,
-        mesReferencia,
-      );
-
-      const despesaDoMes = await this.despesaRepository.create({
-        usuarioId,
-        perfilFinanceiroId: perfilFinanceiroId ?? despesaExistente.perfilFinanceiroId,
-        descricao: nome?.trim() ?? despesaExistente.descricao,
-        valor: valor ?? Number(despesaExistente.valor),
-        categoriaNome:
-          categoria === undefined
-            ? despesaExistente.categoriaNome
-            : categoria?.trim() || null,
-        formaPagamento: formaFinal,
-        cartaoCreditoId:
-          cartaoId === undefined ? despesaExistente.cartaoCreditoId : cartaoId,
-        mesReferencia,
-        dataVencimento: vencimentoFinal,
-        fixa: false,
-        numeroParcelas: null,
-        parcelaAtual: null,
-        parcelamentoId: null,
-      });
-
-      return formatarDespesa(despesaDoMes);
     }
 
     const despesa = await this.despesaRepository.update(despesaId, {
