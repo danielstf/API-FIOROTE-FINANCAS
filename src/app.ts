@@ -77,8 +77,20 @@ app.register(fastifyCors, {
     callback(new Error("Origin not allowed by CORS"), false);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Perfil-Financeiro-Id"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Perfil-Financeiro-Id", "X-App-Secret"],
   credentials: true,
+});
+
+app.addHook("onRequest", async (request, reply) => {
+  if (!env.APP_SECRET) return;
+  if (request.method === "OPTIONS") return;
+  if (request.url === "/" || request.url === "/health") return;
+  if (request.url.startsWith("/webhooks/")) return;
+
+  const clientSecret = request.headers["x-app-secret"];
+  if (clientSecret !== env.APP_SECRET) {
+    return reply.status(401).send({ message: "Acesso não autorizado." });
+  }
 });
 
 app.get("/", async () => {

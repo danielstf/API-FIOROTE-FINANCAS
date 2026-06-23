@@ -27,6 +27,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
   REVENUECAT_SECRET_KEY: z.string().optional().default(""),
   REVENUECAT_ENTITLEMENT_ID: z.string().optional().default("premium"),
+  APP_SECRET: z.string().optional().default(""),
 });
 
 const _env = envSchema.safeParse(process.env);
