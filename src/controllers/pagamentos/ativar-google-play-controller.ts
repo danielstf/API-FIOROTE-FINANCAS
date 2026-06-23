@@ -1,12 +1,13 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { AtivarGooglePlayUseCase } from "../../use-cases/pagamentos/ativar-google-play-usecase";
+import {
+  AtivarGooglePlayUseCase,
+  CompraGooglePlayNaoValidadaError,
+  RevenueCatNaoConfiguradoError,
+} from "../../use-cases/pagamentos/ativar-google-play-usecase";
 
 const bodySchema = z.object({
-  purchaseToken: z.string(),
-  productId: z.string(),
-  tipo: z.enum(["RECORRENTE", "AVULSO"]),
-  revenuecatUserId: z.string().optional(),
+  revenuecatUserId: z.string().min(1),
 });
 
 export async function ativarGooglePlayController(
@@ -14,18 +15,26 @@ export async function ativarGooglePlayController(
   reply: FastifyReply,
 ) {
   try {
-    const body = bodySchema.parse(request.body);
+    const { revenuecatUserId } = bodySchema.parse(request.body);
     const useCase = new AtivarGooglePlayUseCase();
 
     const resultado = await useCase.execute({
       usuarioId: request.user.sub,
-      ...body,
+      revenuecatUserId,
     });
 
     return reply.status(200).send(resultado);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return reply.status(400).send({ message: "Dados inválidos.", errors: error.flatten() });
+      return reply.status(400).send({ message: "Dados inválidos.", issues: error.issues });
+    }
+
+    if (error instanceof CompraGooglePlayNaoValidadaError) {
+      return reply.status(402).send({ message: error.message });
+    }
+
+    if (error instanceof RevenueCatNaoConfiguradoError) {
+      return reply.status(503).send({ message: error.message });
     }
 
     console.error("Erro ao ativar Google Play:", error);

@@ -2,6 +2,7 @@ import fastifyJwt from "@fastify/jwt";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyCookie from "@fastify/cookie";
 import { fastify } from "fastify";
 import { ZodError } from "zod";
 import { env } from "./env";
@@ -105,11 +106,12 @@ app.setErrorHandler((error, _request, reply) => {
   });
 });
 
+app.register(fastifyCookie);
+
 app.register(fastifyJwt, {
   secret: env.JWT_SECRET,
-  sign: {
-    expiresIn: "24h",
-  },
+  sign: { expiresIn: "24h" },
+  cookie: { cookieName: "fiorote_token", signed: false },
 });
 
 app.register(usuariosRoutes);

@@ -67,16 +67,9 @@ export class CancelarAssinaturaPremiumUseCase {
         role: true,
         plano: true,
         premiumExpiraEm: true,
-        senha: true,
       },
     });
 
-    return {
-      usuario: {
-        ...usuario,
-        temSenha: Boolean(usuario.senha),
-        senha: undefined,
-      },
-    };
+    return { usuario };
   }
 }

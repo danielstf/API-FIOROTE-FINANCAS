@@ -8,7 +8,14 @@ import { excluirContatoController } from "./excluir-contato-controller";
 
 export function contatosRoutes(app: FastifyInstance) {
   // Público — sem autenticação
-  app.post("/contatos", criarContatoController);
+  app.post("/contatos", {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: "15 minutes",
+      },
+    },
+  }, criarContatoController);
 
   // Admin only
   app.get("/contatos", { preHandler: [JWTVerify, RoleVerify("ADMIN")] }, listarContatosController);

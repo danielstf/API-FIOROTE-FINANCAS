@@ -18,17 +18,10 @@ export async function solicitarRedefinicaoSenhaController(
     const solicitarRedefinicaoSenha = makeSolicitarRedefinicaoSenhaFactory();
     const { resetToken } = await solicitarRedefinicaoSenha.execute({ email });
 
-    if (!resetToken) {
-      console.log(
-        "Redefinicao de senha solicitada, mas o email nao esta cadastrado:",
-        email,
-      );
-    }
-
     if (resetToken) {
       const resetUrl = `${env.FRONTEND_URL}/redefinir-senha?token=${resetToken}`;
 
-      const result = await sendEmail({
+      await sendEmail({
         to: email,
         subject: "Redefinicao de senha",
         html: `
@@ -38,8 +31,6 @@ export async function solicitarRedefinicaoSenhaController(
           <p>Esse link expira em 30 minutos.</p>
         `,
       });
-
-      console.log("Email de redefinicao enviado pelo ZeptoMail:", result);
     }
 
     return reply.status(200).send({

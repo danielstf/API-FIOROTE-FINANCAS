@@ -8,6 +8,7 @@ import { redefinirSenhaController } from "./redefinir-senha-controller";
 import { solicitarRedefinicaoSenhaController } from "./solicitar-redefinicao-senha-controller";
 import { trocarSenhaController } from "./trocar-senha-controller";
 import { buscarPerfilController } from "./buscar-perfil-controller";
+import { logoutController } from "./logout-controller";
 
 export function usuariosRoutes(app: FastifyInstance) {
   app.post(
@@ -91,4 +92,5 @@ export function usuariosRoutes(app: FastifyInstance) {
     },
     trocarSenhaController,
   );
+  app.post("/logout", logoutController);
 }

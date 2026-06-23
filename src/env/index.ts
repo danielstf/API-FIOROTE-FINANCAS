@@ -25,6 +25,8 @@ const envSchema = z.object({
   PREMIUM_MONTHLY_PRICE: z.coerce.number().positive().default(8),
   PREMIUM_RECURRING_PRICE: z.coerce.number().positive().default(5),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  REVENUECAT_SECRET_KEY: z.string().optional().default(""),
+  REVENUECAT_ENTITLEMENT_ID: z.string().optional().default("premium"),
 });
 
 const _env = envSchema.safeParse(process.env);

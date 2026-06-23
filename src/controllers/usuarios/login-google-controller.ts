@@ -34,6 +34,14 @@ export async function loginGoogleController(
       sid: sessao.id,
     });
 
+    reply.setCookie("fiorote_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24,
+    });
+
     return reply.status(200).send({
       token,
       usuario: {
