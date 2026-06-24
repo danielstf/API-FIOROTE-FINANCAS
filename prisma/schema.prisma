@@ -22,12 +22,10 @@ model Usuario {
   cartoesCredito              CartaoCredito[]
   categorias                  Categoria[]
   despesas                    Despesa[]
-  despesasExcecoesRecorrencia DespesaExcecaoRecorrencia[]
-  pagamentosPremium           PagamentoPremium[]
-  perfisFinanceiros           PerfilFinanceiro[]
-  receitas                    Receita[]
-  receitasExcecoesRecorrencia ReceitaExcecaoRecorrencia[]
-  sessoes                     SessaoUsuario[]
+  pagamentosPremium PagamentoPremium[]
+  perfisFinanceiros PerfilFinanceiro[]
+  receitas          Receita[]
+  sessoes           SessaoUsuario[]
   sugestoes                   Sugestao[]
   pushTokens                  PushToken[]
 }
@@ -85,88 +83,56 @@ model PagamentoPremium {
 }
 
 model Receita {
-  id                   String                      @id @default(uuid())
-  descricao            String
-  valor                Decimal                     @db.Decimal(10, 2)
-  data                 DateTime
-  fixa                 Boolean                     @default(false)
-  recorrenciaFim       DateTime?
-  recorrenciaEncerrada Boolean                     @default(false)
-  numeroParcelas       Int?
-  parcelaAtual         Int?
-  parcelamentoId       String?
-  criadoEm             DateTime                    @default(now())
-  usuarioId            String
-  perfilFinanceiroId   String?
-  categoriaId          String?
-  categoria            Categoria?                  @relation(fields: [categoriaId], references: [id])
-  perfilFinanceiro     PerfilFinanceiro?           @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
-  usuario              Usuario                     @relation(fields: [usuarioId], references: [id])
-  excecoesRecorrencia  ReceitaExcecaoRecorrencia[]
+  id                 String            @id @default(uuid())
+  descricao          String
+  valor              Decimal           @db.Decimal(10, 2)
+  data               DateTime
+  fixa               Boolean           @default(false)
+  numeroParcelas     Int?
+  parcelaAtual       Int?
+  parcelamentoId     String?
+  criadoEm          DateTime          @default(now())
+  usuarioId          String
+  perfilFinanceiroId String?
+  categoriaId        String?
+  categoria          Categoria?        @relation(fields: [categoriaId], references: [id])
+  perfilFinanceiro   PerfilFinanceiro? @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
+  usuario            Usuario           @relation(fields: [usuarioId], references: [id])
 
   @@index([usuarioId, perfilFinanceiroId, data])
   @@index([usuarioId, perfilFinanceiroId, fixa, data])
   @@index([parcelamentoId, usuarioId])
 }
 
-model ReceitaExcecaoRecorrencia {
-  id            String   @id @default(uuid())
-  usuarioId     String
-  receitaId     String
-  mesReferencia DateTime
-  criadoEm      DateTime @default(now())
-  receita       Receita  @relation(fields: [receitaId], references: [id], onDelete: Cascade)
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
-  @@unique([receitaId, usuarioId, mesReferencia])
-  @@index([usuarioId, mesReferencia])
-}
-
 model Despesa {
-  id                   String                      @id @default(uuid())
-  descricao            String
-  valor                Decimal                     @db.Decimal(10, 2)
-  categoriaNome        String?
-  formaPagamento       FormaPagamentoDespesa       @default(DINHEIRO)
-  cartaoCreditoId      String?
-  mesReferencia        DateTime                    @default(now())
-  dataVencimento       DateTime?
-  dataPagamento        DateTime?
-  paga                 Boolean                     @default(false)
-  fixa                 Boolean                     @default(false)
-  recorrenciaFim       DateTime?
-  recorrenciaEncerrada Boolean                     @default(false)
-  numeroParcelas       Int?
-  parcelaAtual         Int?
-  parcelamentoId       String?
-  criadoEm             DateTime                    @default(now())
-  usuarioId            String
-  perfilFinanceiroId   String?
-  categoriaId          String?
-  cartaoCredito        CartaoCredito?              @relation(fields: [cartaoCreditoId], references: [id])
-  categoria            Categoria?                  @relation(fields: [categoriaId], references: [id])
-  perfilFinanceiro     PerfilFinanceiro?           @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
-  usuario              Usuario                     @relation(fields: [usuarioId], references: [id])
-  excecoesRecorrencia  DespesaExcecaoRecorrencia[]
+  id                 String                @id @default(uuid())
+  descricao          String
+  valor              Decimal               @db.Decimal(10, 2)
+  categoriaNome      String?
+  formaPagamento     FormaPagamentoDespesa @default(DINHEIRO)
+  cartaoCreditoId    String?
+  mesReferencia      DateTime              @default(now())
+  dataVencimento     DateTime?
+  dataPagamento      DateTime?
+  paga               Boolean               @default(false)
+  fixa               Boolean               @default(false)
+  numeroParcelas     Int?
+  parcelaAtual       Int?
+  parcelamentoId     String?
+  criadoEm           DateTime              @default(now())
+  usuarioId          String
+  perfilFinanceiroId String?
+  categoriaId        String?
+  cartaoCredito      CartaoCredito?        @relation(fields: [cartaoCreditoId], references: [id])
+  categoria          Categoria?            @relation(fields: [categoriaId], references: [id])
+  perfilFinanceiro   PerfilFinanceiro?     @relation(fields: [perfilFinanceiroId], references: [id], onDelete: Cascade)
+  usuario            Usuario               @relation(fields: [usuarioId], references: [id])
 
   @@index([usuarioId, perfilFinanceiroId, mesReferencia])
   @@index([usuarioId, perfilFinanceiroId, fixa, mesReferencia])
   @@index([usuarioId, perfilFinanceiroId, paga, dataVencimento])
   @@index([cartaoCreditoId, usuarioId])
   @@index([parcelamentoId, usuarioId])
-}
-
-model DespesaExcecaoRecorrencia {
-  id            String   @id @default(uuid())
-  usuarioId     String
-  despesaId     String
-  mesReferencia DateTime
-  criadoEm      DateTime @default(now())
-  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
-  @@unique([despesaId, usuarioId, mesReferencia])
-  @@index([usuarioId, mesReferencia])
 }
 
 model CartaoCredito {
